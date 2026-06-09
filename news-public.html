@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Archivo Cripto · Noticias en vivo</title>
+<style>
+  html, body, #root { margin: 0; padding: 0; height: 100%; min-height: 100%; background: #080c0a; }
+  #boot { color: #5a6b64; font-family: monospace; padding: 40px; text-align: center; }
+</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+<div id="root"><div id="boot">Cargando noticias…</div></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ── Archivo Cripto · Noticias en vivo (versión pública, solo lectura) ─────────
+const CFG = {
+  GREEN: "#00ff00",
+  FONT_SCALE: 1.2,
+  LOGO: "https://static.wixstatic.com/media/a297a9_fc9af5584e4440968223c6dc323710bf~mv2.png",
+  // Proxies CORS públicos para leer los RSS desde el navegador (con fallback)
+  CORS_PROXIES: [
+    "https://api.allorigins.win/raw?url=",
+    "https://corsproxy.io/?url=",
+  ],
+};
+const GREEN = CFG.GREEN;
+const FS = CFG.FONT_SCALE;
+
+const COINS = ["BTC", "ETH", "SOL", "XRP", "HYPE", "BNB", "DOGE", "ADA", "AVAX", "LINK"];
+const HOT = ["hack", "exploit", "sec", "etf", "listing", "delisting", "lawsuit", "ban", "approv", "liquidat", "rug", "halt", "default", "bankrupt", "ath", "all-time", "estafa", "regulación", "prohib"];
+
+const timeAgo = (ts) => {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return `${s}s`;
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  return `${Math.floor(s / 86400)}d`;
+};
+const detectCoins = (t = "") => { const up = t.toUpperCase(); return COINS.filter((c) => up.includes(c)); };
+const clip = (t = "", n = 160) => (t.length > n ? t.slice(0, n).trimEnd() + "…" : t);
+const splitMedio = (t = "") => {
+  const i = t.indexOf(":");
+  if (i > 0 && i <= 40) return { medio: t.slice(0, i).trim(), desc: t.slice(i + 1).trim() };
+  return { medio: "", desc: t };
+};
+const urgency = (it) => {
+  const ageMin = (Date.now() - it.ts) / 60000;
+  let score = Math.max(0, 100 - ageMin);
+  const low = it.title.toLowerCase();
+  if (HOT.some((w) => low.includes(w))) score += 40;
+  if (it.coins.includes("BTC") || it.coins.includes("ETH")) score += 20;
+  score += Math.min(it.coins.length * 4, 16);
+  return score;
+};
+
+// Feeds en español
+const FEEDS_ES = [
+  { id: "criptonoticias", label: "CriptoNoticias", url: "https://www.criptonoticias.com/feed/" },
+  { id: "ct-es",          label: "Cointelegraph", url: "https://es.cointelegraph.com/rss" },
+  { id: "beincrypto-es",  label: "BeInCrypto",    url: "https://es.beincrypto.com/feed/" },
+  { id: "diariobitcoin",  label: "DiarioBitcoin", url: "https://www.diariobitcoin.com/feed/" },
+  { id: "criptotendencia",label: "CriptoTendencia",url: "https://www.criptotendencia.com/feed/" },
+];
+// Feeds en inglés (se suman en modo "Español / Inglés")
+const FEEDS_EN = [
+  { id: "coindesk",      label: "CoinDesk",      url: "https://www.coindesk.com/arc/outboundfeeds/rss/" },
+  { id: "cointelegraph", label: "Cointelegraph EN", url: "https://cointelegraph.com/rss" },
+  { id: "decrypt",       label: "Decrypt",       url: "https://decrypt.co/feed" },
+  { id: "theblock",      label: "The Block",     url: "https://www.theblock.co/rss.xml" },
+  { id: "bitcoinmag",    label: "Bitcoin Mag",   url: "https://bitcoinmagazine.com/feed" },
+];
+
+// Trae un feed RSS probando los proxies en orden
+async function fetchFeed(feed, push) {
+  let xml = "";
+  for (const proxy of CFG.CORS_PROXIES) {
+    try {
+      const r = await fetch(proxy + encodeURIComponent(feed.url));
+      if (!r.ok) continue;
+      const t = await r.text();
+      if (t && t.includes("<")) { xml = t; break; }
+    } catch {}
+  }
+  if (!xml) return;
+  try {
+    const doc = new DOMParser().parseFromString(xml, "text/xml");
+    const items = [...doc.querySelectorAll("item, entry")];
+    items.slice(0, 25).forEach((node, i) => {
+      const get = (sel) => node.querySelector(sel)?.textContent?.trim() || "";
+      const title = get("title");
+      if (!title) return;
+      let link = get("link");
+      if (!link) link = node.querySelector("link")?.getAttribute("href") || "";
+      const dateStr = get("pubDate") || get("published") || get("updated");
+      const ts = dateStr ? new Date(dateStr).getTime() : Date.now();
+      push({
+        id: `${feed.id}-${link || title.slice(0, 40) || i}`,
+        source: feed.label, title, url: link,
+        ts: isNaN(ts) ? Date.now() : ts, coins: detectCoins(title),
+      });
+    });
+  } catch {}
+}
+
+// Tree News por WebSocket (solo se usa en modo "Español / Inglés")
+function connectTree(push, setState) {
+  let alive = true, ws;
+  const open = () => {
+    try {
+      ws = new WebSocket("wss://news.treeofalpha.com/ws");
+      ws.onopen = () => alive && setState("LIVE");
+      ws.onclose = () => { if (alive) { setState("…"); setTimeout(open, 3000); } };
+      ws.onerror = () => setState("…");
+      ws.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          (Array.isArray(data) ? data : [data]).forEach((d) => {
+            const title = d.title || d.body;
+            if (!title) return;
+            push({
+              id: `tree-${d._id || d.time || Math.random()}`,
+              source: "Tree", title, url: d.url || d.link || "",
+              ts: d.time || Date.now(), coins: d.coin?.length ? d.coin : detectCoins(title),
+            });
+          });
+        } catch {}
+      };
+    } catch { setState("…"); }
+  };
+  open();
+  return () => { alive = false; ws?.close(); };
+}
+
+function App() {
+  const [items, setItems] = useState([]);
+  const [mode, setMode] = useState("es"); // "es" | "all"
+  const [q, setQ] = useState("");
+  const [fSource, setFSource] = useState("all");
+  const [fCoin, setFCoin] = useState("all");
+  const [fHot, setFHot] = useState(false);
+  const [treeState, setTreeState] = useState("…");
+  const seen = useRef(new Set());
+
+  const push = useCallback((it) => {
+    setItems((prev) => {
+      if (seen.current.has(it.id)) return prev;
+      seen.current.add(it.id);
+      return [it, ...prev].slice(0, 300);
+    });
+  }, []);
+
+  // Al cambiar de modo, reseteamos y recargamos las fuentes correspondientes
+  useEffect(() => {
+    seen.current = new Set();
+    setItems([]);
+    const feeds = mode === "es" ? FEEDS_ES : [...FEEDS_ES, ...FEEDS_EN];
+    feeds.forEach((f) => fetchFeed(f, push));
+    const poll = setInterval(() => feeds.forEach((f) => fetchFeed(f, push)), 120000);
+
+    let cleanupTree = () => {};
+    if (mode === "all") cleanupTree = connectTree(push, setTreeState);
+    else setTreeState("off");
+
+    return () => { clearInterval(poll); cleanupTree(); };
+  }, [mode, push]);
+
+  const sorted = [...items]
+    .filter((it) => !q || it.title.toLowerCase().includes(q.toLowerCase()))
+    .filter((it) => fSource === "all" || it.source === fSource)
+    .filter((it) => fCoin === "all" || it.coins.includes(fCoin))
+    .filter((it) => !fHot || urgency(it) > 110)
+    .sort((a, b) => urgency(b) - urgency(a));
+
+  const sourcesPresent = [...new Set(items.map((it) => it.source))].sort();
+
+  return (
+    <div style={S.app}>
+      <style>{FONT_CSS}</style>
+
+      <header style={S.header}>
+        <div style={S.brand}>
+          <img src={CFG.LOGO} alt="Archivo Cripto" style={S.logo} onError={(e) => { e.target.style.display = "none"; }} />
+          <span style={S.live}><span style={S.liveDot}></span> EN VIVO</span>
+        </div>
+        <div style={S.contentToggle}>
+          <span style={S.toggleLabel}>Contenido:</span>
+          <button style={{ ...S.toggleBtn, ...(mode === "es" ? S.toggleBtnOn : {}) }} onClick={() => setMode("es")}>Sólo Español</button>
+          <button style={{ ...S.toggleBtn, ...(mode === "all" ? S.toggleBtnOn : {}) }} onClick={() => setMode("all")}>Español / Inglés</button>
+        </div>
+      </header>
+
+      <div style={S.toolbar}>
+        <input style={S.search} placeholder="Buscar en titulares…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <select style={S.select} value={fSource} onChange={(e) => setFSource(e.target.value)}>
+          <option value="all">Todas las fuentes</option>
+          {sourcesPresent.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select style={S.select} value={fCoin} onChange={(e) => setFCoin(e.target.value)}>
+          <option value="all">Todas las monedas</option>
+          {COINS.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <button style={{ ...S.filterBtn, ...(fHot ? S.filterBtnOn : {}) }} onClick={() => setFHot((v) => !v)}>🔥 Urgentes</button>
+      </div>
+
+      <div style={S.list}>
+        {sorted.length === 0 && <div style={S.empty}>Cargando noticias…</div>}
+        {sorted.map((it, i) => {
+          const u = urgency(it);
+          const hot = u > 110;
+          const { medio, desc } = splitMedio(clip(it.title));
+          return (
+            <a
+              key={it.id}
+              href={it.url || "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="news-row"
+              style={{ ...S.row, ...(i % 2 === 1 ? S.rowAlt : {}) }}
+            >
+              <span style={{ ...S.rank, ...(hot ? S.rankHot : {}) }}>{i + 1}</span>
+              <div style={{ flex: 1 }}>
+                <div style={S.rowHead}>
+                  <span style={S.rowSrc}>{it.source}</span>
+                  <span style={S.rowTime}>{timeAgo(it.ts)}</span>
+                  {hot && <span style={S.hotTag}>🔥 urgente</span>}
+                  {it.coins.slice(0, 3).map((c) => <span key={c} style={S.rowCoin}>{c}</span>)}
+                </div>
+                <div className="news-title" style={S.rowTitle}>
+                  {medio && <span style={S.rowMedio}>{medio}: </span>}
+                  {desc}
+                </div>
+              </div>
+              <span style={S.rowOpen}>↗</span>
+            </a>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const mono = "'Barlow Semi Condensed', sans-serif";
+const barlow = mono;
+const FONT_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@300;400;500;600;700;800&display=swap');
+  ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#1f2d28;border-radius:4px}
+  *{box-sizing:border-box}
+  a.news-row{ text-decoration:none; }
+  .news-row { transition: background .15s ease, border-color .25s ease, box-shadow .25s ease; }
+  .news-row:hover {
+    background: #222222 !important;
+    border-color: ${GREEN} !important;
+    box-shadow: inset 0 0 0 1px ${GREEN}33, 0 0 12px ${GREEN}22;
+  }
+  .news-row:hover .news-title { color: ${GREEN}; transition: color .2s ease; }
+  .news-row:hover .news-title span { color: ${GREEN}; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+`;
+const S = {
+  app: { fontFamily: barlow, background: "#080c0a", color: "#d8e6e0", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", borderBottom: "1px solid #16221d", flexWrap: "wrap", gap: 10 },
+  brand: { display: "flex", alignItems: "center", gap: 14 },
+  logo: { height: 38, width: "auto", display: "block" },
+  live: { display: "flex", alignItems: "center", gap: 6, fontFamily: mono, fontSize: 11 * FS, color: GREEN, letterSpacing: 1 },
+  liveDot: { width: 8, height: 8, borderRadius: "50%", background: GREEN, animation: "pulse 1.5s infinite" },
+  contentToggle: { display: "flex", alignItems: "center", gap: 8 },
+  toggleLabel: { fontFamily: mono, fontSize: 12 * FS, color: "#9bb5ac" },
+  toggleBtn: { background: "transparent", border: "1px solid #1f2d28", color: "#9bb5ac", padding: "6px 14px", borderRadius: 6, fontFamily: mono, fontSize: 12 * FS, cursor: "pointer" },
+  toggleBtnOn: { background: "#0d1f18", borderColor: GREEN, color: GREEN },
+  toolbar: { display: "flex", gap: 10, padding: "12px 20px", alignItems: "center", borderBottom: "1px solid #16221d", flexWrap: "wrap" },
+  search: { flex: 1, minWidth: 180, background: "#0f1714", border: "1px solid #1f2d28", color: "#d8e6e0", padding: "8px 12px", borderRadius: 6, fontFamily: mono, fontSize: 13 * FS, outline: "none" },
+  select: { background: "#0f1714", border: "1px solid #1f2d28", color: "#d8e6e0", padding: "8px 10px", borderRadius: 6, fontFamily: mono, fontSize: 12 * FS, outline: "none", cursor: "pointer" },
+  filterBtn: { background: "transparent", border: "1px solid #1f2d28", color: "#9bb5ac", padding: "8px 12px", borderRadius: 6, fontFamily: mono, fontSize: 12 * FS, cursor: "pointer", whiteSpace: "nowrap" },
+  filterBtnOn: { borderColor: "#ff7a45", color: "#ff7a45" },
+  list: { flex: 1, overflowY: "auto" },
+  empty: { padding: 30, color: "#5a6b64", fontFamily: mono, fontSize: 13 * FS, textAlign: "center" },
+  row: { display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 18px", cursor: "pointer", position: "relative", background: "#0d0d0d", border: "1px solid transparent", color: "#d8e6e0" },
+  rowAlt: { background: "#1a1a1a" },
+  rank: { fontFamily: mono, fontSize: 11 * FS, color: "#5a6b64", minWidth: 22, textAlign: "right" },
+  rankHot: { color: GREEN, fontWeight: 700 },
+  rowHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 5, flexWrap: "wrap" },
+  rowSrc: { fontFamily: mono, fontSize: 10 * FS, color: "#00b377", textTransform: "uppercase", letterSpacing: 1 },
+  rowTime: { fontFamily: mono, fontSize: 10 * FS, color: "#5a6b64" },
+  hotTag: { fontFamily: mono, fontSize: 10 * FS, color: "#ff7a45" },
+  rowCoin: { fontFamily: mono, fontSize: 10 * FS, background: "#16221d", color: "#9bb5ac", padding: "1px 5px", borderRadius: 3 },
+  rowTitle: { fontSize: 14 * FS, lineHeight: 1.4, color: "#d8e6e0", fontWeight: 500 },
+  rowMedio: { color: GREEN, fontWeight: 600 },
+  rowOpen: { flexShrink: 0, alignSelf: "center", color: "#5a6b64", fontSize: 16 * FS },
+};
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>
