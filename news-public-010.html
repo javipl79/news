@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Archivo Cripto · Noticias en vivo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@300;400;500;600;700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #080c0a; font-family: 'Barlow Semi Condensed', sans-serif; color: #d8e6e0; }
+  #app { height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+  #app.js-height { height: var(--app-h, 100%); }
+  header { position: sticky; top: 0; z-index: 20; background: #080c0a; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #1f2d28; border-radius: 4px; }
+
+  header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid #16221d; flex-wrap: wrap; gap: 10px; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .logo { height: 38px; width: auto; display: block; }
+  .live { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #00ff00; letter-spacing: 1px; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #00ff00; animation: pulse 1.5s infinite; }
+  .live-wrap { display: flex; align-items: baseline; gap: 6px; }
+  .version { font-size: 11px; color: #888; letter-spacing: .5px; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+  .content-toggle { display: flex; align-items: center; gap: 8px; }
+  .toggle-label { font-size: 14px; color: #9bb5ac; }
+  .toggle-btn { background: transparent; border: 1px solid #1f2d28; color: #9bb5ac; padding: 6px 14px; border-radius: 6px; font-family: inherit; font-size: 14px; cursor: pointer; }
+  .toggle-btn.on { background: #0d1f18; border-color: #00ff00; color: #00ff00; }
+
+  .toolbar { display: flex; gap: 10px; padding: 12px 20px; align-items: center; border-bottom: 1px solid #16221d; flex-wrap: wrap; }
+  .search { flex: 1; min-width: 180px; background: #0f1714; border: 1px solid #1f2d28; color: #d8e6e0; padding: 8px 12px; border-radius: 6px; font-family: inherit; font-size: 15px; outline: none; }
+  select { background: #0f1714; border: 1px solid #1f2d28; color: #d8e6e0; padding: 8px 10px; border-radius: 6px; font-family: inherit; font-size: 14px; outline: none; cursor: pointer; }
+  .filter-btn { background: transparent; border: 1px solid #1f2d28; color: #9bb5ac; padding: 8px 12px; border-radius: 6px; font-family: inherit; font-size: 14px; cursor: pointer; white-space: nowrap; }
+  .filter-btn.on { border-color: #ff7a45; color: #ff7a45; }
+
+  .list { touch-action: pan-y; }
+  .empty { padding: 30px; color: #5a6b64; font-size: 15px; text-align: center; }
+
+  .news-row { position: relative; background: #0d0d0d; border: 1px solid transparent; color: #d8e6e0; transition: background .15s ease, border-color .25s ease, box-shadow .25s ease; }
+  .news-row.alt { background: #1a1a1a; }
+  .news-row-main { display: flex; align-items: flex-start; gap: 12px; padding: 12px 18px; cursor: pointer; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+  .news-row:hover { border-color: #00ff00 !important; box-shadow: inset 0 0 0 1px #00ff0033, 0 0 12px #00ff0022; }
+  .news-row:hover .news-row-main { background: #222; }
+  .news-row:hover .news-title { color: #00ff00; }
+  .news-row.open { border-color: #00ff0055; }
+  .news-row.open .news-row-main { padding-bottom: 14px; }
+  .rank { font-size: 13px; color: #5a6b64; min-width: 22px; text-align: right; }
+  .rank.hot { color: #00ff00; font-weight: 700; }
+  .row-head { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; flex-wrap: wrap; }
+  .row-src { font-size: 12px; color: #00ff00; text-transform: uppercase; letter-spacing: 1px; }
+  .row-time { font-size: 12px; color: #5a6b64; }
+  .hot-tag { font-size: 12px; color: #ff7a45; }
+  .row-coin { font-size: 12px; background: #16221d; color: #9bb5ac; padding: 1px 5px; border-radius: 3px; }
+  .news-title { font-size: 17px; line-height: 1.4; color: #d8e6e0; font-weight: 500; transition: color .2s ease; }
+  .row-open { flex-shrink: 0; align-self: center; color: #5a6b64; font-size: 19px; }
+  .load-more { display: block; width: calc(100% - 36px); margin: 16px 18px 24px; padding: 14px; background: transparent; border: 1px solid #1f2d28; color: #9bb5ac; border-radius: 8px; font-family: inherit; font-size: 15px; cursor: pointer; transition: border-color .2s, color .2s; }
+  .load-more:hover { border-color: #00ff00; color: #00ff00; }
+  .news-panel { padding: 6px 18px 20px 52px; animation: slidein .2s ease; }
+  .news-summary { font-size: 15px; line-height: 1.6; color: #b8c9c2; margin: 0 0 16px 0; }
+  .news-summary.muted { color: #5a6b64; font-style: italic; }
+  .read-btn { display: inline-block; background: #0d1f18; border: 1px solid #00ff00; color: #00ff00; padding: 8px 16px; border-radius: 6px; font-family: inherit; font-size: 14px; text-decoration: none; }
+  .read-btn:hover { background: #00ff00; color: #080c0a; }
+  @keyframes slidein { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── Mobile: pantallas angostas ─────────────────────────────────── */
+  @media (max-width: 600px) {
+    header { padding: 12px 14px; gap: 10px; }
+    .brand { width: 100%; justify-content: space-between; }
+    .logo { height: 32px; }
+    .content-toggle { width: 100%; flex-wrap: wrap; }
+    .toggle-btn { flex: 1; text-align: center; padding: 10px 8px; font-size: 14px; }
+    .toggle-label { width: 100%; margin-bottom: 2px; }
+
+    .toolbar { padding: 10px 14px; gap: 8px; }
+    .search { flex: 1 1 100%; min-width: 0; padding: 11px 12px; font-size: 16px; }
+    select { flex: 1; min-width: 0; padding: 11px 8px; font-size: 14px; }
+
+    .news-row-main { padding: 12px 12px; gap: 8px; }
+    .news-panel { padding: 6px 14px 18px 38px; }
+    .news-summary { font-size: 14px; line-height: 1.6; margin-bottom: 16px; }
+    .rank { min-width: 18px; font-size: 12px; }
+    .news-title { font-size: 16px; line-height: 1.35; }
+    .row-head { gap: 6px; margin-bottom: 4px; }
+    .row-src { font-size: 11px; }
+    .row-time, .hot-tag, .row-coin { font-size: 11px; }
+    .row-open { font-size: 17px; }
+
+    /* Colapso al hacer scroll: queda solo el brand (logo+EN VIVO), se ocultan toggle y filtros */
+    .content-toggle { transition: max-height .25s ease, opacity .2s ease, margin .25s ease; max-height: 120px; overflow: hidden; }
+    .toolbar { transition: max-height .3s ease, padding .25s ease, opacity .2s ease, border .2s ease; max-height: 200px; overflow: hidden; }
+    #app.scrolled .content-toggle { max-height: 0; opacity: 0; margin: 0; }
+    #app.scrolled .toolbar { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; border: none; }
+    #app.scrolled header { padding-bottom: 8px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <img class="logo" src="https://static.wixstatic.com/media/a297a9_fc9af5584e4440968223c6dc323710bf~mv2.png" alt="Archivo Cripto" onerror="this.style.display='none'">
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> EN VIVO</span><span class="version">v2.0</span></span>
+    </div>
+    <div class="content-toggle">
+      <span class="toggle-label">Contenido:</span>
+      <button id="btn-es" class="toggle-btn on">Sólo Español</button>
+      <button id="btn-all" class="toggle-btn">Español / Inglés</button>
+    </div>
+  </header>
+  <div class="toolbar">
+    <input id="search" class="search" placeholder="Buscar en titulares…">
+    <select id="f-source"><option value="all">Todas las fuentes</option></select>
+    <select id="f-coin"><option value="all">Todas las monedas</option></select>
+  </div>
+  <div id="list" class="list"><div class="empty">Cargando noticias…</div></div>
+</div>
+
+<script>
+// ── Archivo Cripto · Noticias en vivo (público, vanilla JS, sin frameworks) ───
+var CORS_PROXIES = ["https://api.allorigins.win/raw?url=", "https://corsproxy.io/?url=", "https://thingproxy.freeboard.io/fetch/"];
+var COINS = ["BTC","ETH","SOL","XRP","HYPE","BNB","DOGE","ADA","AVAX","LINK"];
+var HOT = ["hack","exploit","sec","etf","listing","delisting","lawsuit","ban","approv","liquidat","rug","halt","default","bankrupt","ath","all-time","estafa","regulación","prohib","desplom","colapso"];
+
+var FEEDS_ES = [
+  { id:"criptonoticias", label:"CriptoNoticias", url:"https://www.criptonoticias.com/feed/" },
+  { id:"ct-es",          label:"Cointelegraph",  url:"https://es.cointelegraph.com/rss" },
+  { id:"beincrypto-es",  label:"BeInCrypto",     url:"https://es.beincrypto.com/feed/" },
+  { id:"diariobitcoin",  label:"DiarioBitcoin",  url:"https://www.diariobitcoin.com/feed/" },
+  { id:"criptotendencia",label:"CriptoTendencia",url:"https://www.criptotendencia.com/feed/" }
+];
+var FEEDS_EN = [
+  { id:"coindesk",      label:"CoinDesk",       url:"https://www.coindesk.com/arc/outboundfeeds/rss/" },
+  { id:"cointelegraph", label:"Cointelegraph EN", url:"https://cointelegraph.com/rss" },
+  { id:"decrypt",       label:"Decrypt",        url:"https://decrypt.co/feed" },
+  { id:"theblock",      label:"The Block",      url:"https://www.theblock.co/rss.xml" },
+  { id:"bitcoinmag",    label:"Bitcoin Mag",    url:"https://bitcoinmagazine.com/feed" }
+];
+
+var items = [];
+var seen = {};
+var mode = "es";
+var q = "", fSource = "all", fCoin = "all";
+var expandedId = null;
+var visibleCount = 20; // cuántas noticias se muestran (crece con "Cargar más")
+var pollTimer = null, treeWs = null;
+
+function timeAgo(ts){
+  var s = Math.floor((Date.now()-ts)/1000);
+  if(s<60) return s+"s";
+  if(s<3600) return Math.floor(s/60)+"m";
+  if(s<86400) return Math.floor(s/3600)+"h";
+  return Math.floor(s/86400)+"d";
+}
+function detectCoins(t){
+  var up = (t||"").toUpperCase();
+  return COINS.filter(function(c){
+    // \b = límite de palabra: evita que "ADA" matchee dentro de "criptomonedAs"
+    return new RegExp("\\b" + c + "\\b").test(up);
+  });
+}
+function clip(t,n){ n=n||160; t=t||""; return t.length>n ? t.slice(0,n).trim()+"…" : t; }
+function splitMedio(t){ t=t||""; var i=t.indexOf(":"); if(i>0&&i<=40) return [t.slice(0,i).trim(), t.slice(i+1).trim()]; return ["", t]; }
+function urgency(it){
+  var ageMin=(Date.now()-it.ts)/60000;
+  var score=Math.max(0,100-ageMin);
+  var low=it.title.toLowerCase();
+  if(HOT.some(function(w){return low.indexOf(w)>=0;})) score+=40;
+  return score;
+}
+function esc(s){ var d=document.createElement("div"); d.textContent=s||""; return d.innerHTML; }
+
+// Limpia el HTML del resumen del RSS y lo recorta a ~300 caracteres
+function cleanSummary(html){
+  if(!html) return "";
+  var tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  var txt = (tmp.textContent || "").replace(/\s+/g, " ").trim();
+  // Sacamos coletillas típicas de los feeds
+  txt = txt.replace(/(Leer más|Read more|The post .*? appeared first on .*?\.?)$/i, "").trim();
+  if(txt.length > 300) txt = txt.slice(0, 300).trim() + "…";
+  return txt;
+}
+
+function pushItem(it){
+  if(seen[it.id]) return;
+  seen[it.id]=true;
+  items.unshift(it);
+  if(items.length>300) items.length=300;
+}
+
+// Trae un feed corriendo los proxies en paralelo (carrera): se queda con el
+// primero que devuelva RSS válido. Robusto y rápido a la vez.
+function fetchViaProxy(proxy, feedUrl){
+  var ctrl = new AbortController();
+  var to = setTimeout(function(){ ctrl.abort(); }, 8000);
+  return fetch(proxy + encodeURIComponent(feedUrl), { signal: ctrl.signal })
+    .then(function(r){ clearTimeout(to); if(!r.ok) throw 0; return r.text(); })
+    .then(function(xml){
+      if(!xml || xml.indexOf("<")<0 || (xml.indexOf("<item")<0 && xml.indexOf("<entry")<0)) throw 0;
+      return xml;
+    })
+    .catch(function(){ clearTimeout(to); throw 0; });
+}
+
+function fetchFeedFast(feed){
+  var attempts = CORS_PROXIES.map(function(p){ return fetchViaProxy(p, feed.url); });
+  // Promise.any: el primero que tenga éxito gana; si todos fallan, no pasa nada
+  return Promise.any(attempts)
+    .then(function(xml){
+      var doc = new DOMParser().parseFromString(xml, "text/xml");
+      var nodes = doc.querySelectorAll("item, entry");
+      for(var i=0;i<Math.min(nodes.length,25);i++){
+        var node = nodes[i];
+        var t = node.querySelector("title"); t = t?t.textContent.trim():"";
+        if(!t) continue;
+        var linkEl = node.querySelector("link");
+        var link = linkEl ? (linkEl.textContent.trim() || linkEl.getAttribute("href") || "") : "";
+        var d = node.querySelector("pubDate, published, updated");
+        var ts = d ? new Date(d.textContent.trim()).getTime() : Date.now();
+        // Resumen: description (RSS) o summary/content (Atom). Limpiamos HTML.
+        var descEl = node.querySelector("description, summary, encoded, content");
+        var resumen = descEl ? cleanSummary(descEl.textContent) : "";
+        pushItem({ id: feed.id+"-"+(link||t.slice(0,40)||i), source: feed.label, title: t, url: link, ts: isNaN(ts)?Date.now():ts, coins: detectCoins(t), summary: resumen });
+      }
+      render();
+    })
+    .catch(function(){ /* todos los proxies fallaron para este feed */ });
+}
+
+function connectTree(){
+  try {
+    treeWs = new WebSocket("wss://news.treeofalpha.com/ws");
+    treeWs.onmessage = function(e){
+      try {
+        var data = JSON.parse(e.data);
+        var arr = Array.isArray(data) ? data : [data];
+        arr.forEach(function(d){
+          var t = d.title || d.body;
+          if(!t) return;
+          pushItem({ id:"tree-"+(d._id||d.time||Math.random()), source:"Tree", title:t, url:d.url||d.link||"", ts:d.time||Date.now(), coins:(d.coin&&d.coin.length)?d.coin:detectCoins(t) });
+        });
+        render();
+      } catch(e2){}
+    };
+  } catch(e){}
+}
+
+function loadSources(){
+  if(pollTimer) clearInterval(pollTimer);
+  if(treeWs){ try{ treeWs.close(); }catch(e){} treeWs=null; }
+  items = []; seen = {};
+  render();
+  var feeds = mode==="es" ? FEEDS_ES : FEEDS_ES.concat(FEEDS_EN);
+  // todos en paralelo
+  feeds.forEach(function(f){ fetchFeedFast(f); });
+  pollTimer = setInterval(function(){ feeds.forEach(function(f){ fetchFeedFast(f); }); }, 120000);
+  if(mode==="all") connectTree();
+}
+
+function updateSourceFilter(){
+  var sel = document.getElementById("f-source");
+  var present = {};
+  items.forEach(function(it){ present[it.source]=true; });
+  var cur = sel.value;
+  var opts = '<option value="all">Todas las fuentes</option>';
+  Object.keys(present).sort().forEach(function(s){ opts += '<option value="'+esc(s)+'">'+esc(s)+'</option>'; });
+  sel.innerHTML = opts;
+  sel.value = cur;
+}
+
+function render(){
+  updateSourceFilter();
+  var list = document.getElementById("list");
+  var arrFull = items.filter(function(it){
+    if(q && it.title.toLowerCase().indexOf(q.toLowerCase())<0) return false;
+    if(fSource!=="all" && it.source!==fSource) return false;
+    if(fCoin!=="all" && it.coins.indexOf(fCoin)<0) return false;
+    return true;
+  }).sort(function(a,b){ return urgency(b)-urgency(a); });
+  var arr = arrFull.slice(0, visibleCount);
+
+  if(arr.length===0){ list.innerHTML = '<div class="empty">Cargando noticias…</div>'; return; }
+
+  var html = "";
+  for(var i=0;i<arr.length;i++){
+    var it = arr[i];
+    var u = urgency(it);
+    var hot = u>110;
+    var isOpen = expandedId === it.id;
+    var coinsHtml = it.coins.slice(0,3).map(function(c){ return '<span class="row-coin">'+c+'</span>'; }).join("");
+    var panel = "";
+    if(isOpen){
+      var resumenHtml = it.summary
+        ? '<p class="news-summary">'+esc(it.summary)+'</p>'
+        : '<p class="news-summary muted">No hay un resumen disponible para esta noticia.</p>';
+      panel = '<div class="news-panel">'
+        + resumenHtml
+        + (it.url ? '<a class="read-btn" href="'+esc(it.url)+'" target="_blank" rel="noopener noreferrer">Leer en '+esc(it.source)+' ↗</a>' : '')
+        + '</div>';
+    }
+    html += '<div class="news-row'+(i%2===1?' alt':'')+(isOpen?' open':'')+'" data-id="'+esc(it.id)+'">'
+      + '<div class="news-row-main">'
+      + '<span class="rank'+(hot?' hot':'')+'">'+(i+1)+'</span>'
+      + '<div style="flex:1">'
+      + '<div class="row-head">'
+      + '<span class="row-src">'+esc(it.source)+'</span>'
+      + '<span class="row-time">'+timeAgo(it.ts)+'</span>'
+      + (hot?'<span class="hot-tag">🔥 urgente</span>':'')
+      + coinsHtml
+      + '</div>'
+      + '<div class="news-title">'+esc(clip(it.title))+'</div>'
+      + '</div>'
+      + '<span class="row-open">'+(isOpen?'▾':'↗')+'</span>'
+      + '</div>'
+      + panel
+      + '</div>';
+  }
+  // Botón "Cargar más" si quedan noticias sin mostrar
+  if(arrFull.length > visibleCount){
+    html += '<button id="load-more" class="load-more">Cargar más ↓</button>';
+  }
+  list.innerHTML = html;
+  // Abrir/cerrar el resumen: distinguimos un tap real de un arrastre (scroll)
+  var rows = list.querySelectorAll(".news-row");
+  for(var k=0;k<rows.length;k++){
+    (function(rowMain){
+      var startY = 0, startX = 0, moved = false, lastTouch = 0;
+      rowMain.addEventListener("touchstart", function(e){
+        moved = false;
+        startY = e.touches[0].clientY;
+        startX = e.touches[0].clientX;
+      }, { passive: true });
+      rowMain.addEventListener("touchmove", function(e){
+        var dy = Math.abs(e.touches[0].clientY - startY);
+        var dx = Math.abs(e.touches[0].clientX - startX);
+        if(dy > 8 || dx > 8) moved = true; // se movió: es scroll, no tap
+      }, { passive: true });
+      rowMain.addEventListener("touchend", function(){
+        lastTouch = Date.now();
+        if(moved) return; // fue scroll, no abrimos nada
+        toggleRow(rowMain.parentNode.getAttribute("data-id"));
+      });
+      rowMain.addEventListener("click", function(){
+        if(Date.now() - lastTouch < 600) return; // click fantasma tras un touch: ignorar
+        toggleRow(rowMain.parentNode.getAttribute("data-id"));
+      });
+    })(rows[k].querySelector(".news-row-main"));
+  }
+  // Clic en "Cargar más": suma 20 y vuelve a dibujar
+  var moreBtn = document.getElementById("load-more");
+  if(moreBtn){
+    moreBtn.addEventListener("click", function(){ visibleCount += 20; render(); });
+  }
+}
+
+function toggleRow(id){
+  expandedId = (expandedId === id) ? null : id;
+  render();
+}
+
+// Coins en el filtro
+(function(){
+  var sel = document.getElementById("f-coin");
+  COINS.forEach(function(c){ var o=document.createElement("option"); o.value=c; o.textContent=c; sel.appendChild(o); });
+})();
+
+// Eventos
+document.getElementById("search").addEventListener("input", function(e){ q=e.target.value; visibleCount=20; render(); });
+document.getElementById("f-source").addEventListener("change", function(e){ fSource=e.target.value; visibleCount=20; render(); });
+document.getElementById("f-coin").addEventListener("change", function(e){ fCoin=e.target.value; visibleCount=20; render(); });
+
+// En pantallas chicas arranca con menos para que el botón "Cargar más" quede alcanzable
+if(window.innerWidth <= 600) visibleCount = 12;
+document.getElementById("btn-es").addEventListener("click", function(){ mode="es"; document.getElementById("btn-es").classList.add("on"); document.getElementById("btn-all").classList.remove("on"); loadSources(); });
+document.getElementById("btn-all").addEventListener("click", function(){ mode="all"; document.getElementById("btn-all").classList.add("on"); document.getElementById("btn-es").classList.remove("on"); loadSources(); });
+
+// Colapsar el toggle de contenido del header al hacer scroll (con histéresis)
+(function(){
+  var appEl = document.getElementById("app");
+  appEl.addEventListener("scroll", function(){
+    if(appEl.scrollTop > 40) appEl.classList.add("scrolled");
+    else if(appEl.scrollTop < 10) appEl.classList.remove("scrolled");
+  });
+})();
+
+setInterval(render, 30000);
+
+// Fija la altura del contenedor a la altura real de la ventana del iframe.
+// Resuelve el corte de scroll en mobile cuando la cadena CSS height:100% no propaga.
+(function(){
+  var appEl = document.getElementById("app");
+  function fixHeight(){
+    var h = window.innerHeight || document.documentElement.clientHeight;
+    if(h && h > 0){
+      appEl.style.setProperty("--app-h", h + "px");
+      appEl.classList.add("js-height");
+    }
+  }
+  fixHeight();
+  window.addEventListener("resize", fixHeight);
+  window.addEventListener("orientationchange", function(){ setTimeout(fixHeight, 200); });
+  setTimeout(fixHeight, 300);
+  setTimeout(fixHeight, 1000);
+})();
+
+loadSources();
+</script>
+</body>
+</html>
