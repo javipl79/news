@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Archivo Cripto · Noticias en vivo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@300;400;500;600;700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #080c0a; }
+  body { font-family: 'Barlow Semi Condensed', sans-serif; color: #d8e6e0; -webkit-text-size-adjust: 100%; }
+  /* El contenedor ocupa toda la altura de la caja del iframe (Wix "Embed a Site")
+     y scrollea por dentro. Así el contenido nunca rebota: el scroll está contenido. */
+  #app { height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #1f2d28; border-radius: 4px; }
+
+  header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid #16221d; flex-wrap: wrap; gap: 10px; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .logo { height: 38px; width: auto; display: block; }
+  .live { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #00ff00; letter-spacing: 1px; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #00ff00; animation: pulse 1.5s infinite; }
+  .live-wrap { display: flex; align-items: baseline; gap: 6px; }
+  .version { font-size: 11px; color: #888; letter-spacing: .5px; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+  .updated { font-size: 12px; color: #5a6b64; }
+
+  .toolbar { display: flex; gap: 10px; padding: 12px 20px; align-items: center; border-bottom: 1px solid #16221d; flex-wrap: wrap; }
+  .search { flex: 1; min-width: 180px; background: #0f1714; border: 1px solid #1f2d28; color: #d8e6e0; padding: 8px 12px; border-radius: 6px; font-family: inherit; font-size: 15px; outline: none; }
+  select { flex: 1 1 120px; min-width: 110px; background: #0f1714; border: 1px solid #1f2d28; color: #d8e6e0; padding: 8px 12px; border-radius: 6px; font-family: inherit; font-size: 14px; outline: none; cursor: pointer; }
+  .filter-btn { background: transparent; border: 1px solid #1f2d28; color: #9bb5ac; padding: 8px 12px; border-radius: 6px; font-family: inherit; font-size: 14px; cursor: pointer; white-space: nowrap; }
+  .filter-btn.on { border-color: #ff7a45; color: #ff7a45; }
+
+  .list { }
+  .empty { padding: 30px; color: #5a6b64; font-size: 15px; text-align: center; }
+
+  .news-row { position: relative; background: #0d0d0d; border: 1px solid transparent; color: #d8e6e0; }
+  .news-row.alt { background: #1a1a1a; }
+  .news-row-main { display: flex; align-items: flex-start; gap: 12px; padding: 12px 18px; cursor: pointer; -webkit-user-select: none; user-select: none; }
+  .news-row.open { border-color: #00ff0055; }
+  .news-row.open .news-row-main { padding-bottom: 14px; }
+  .rank { font-size: 13px; color: #5a6b64; min-width: 22px; text-align: right; }
+  .rank.hot { color: #00ff00; font-weight: 700; }
+  .row-head { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; flex-wrap: wrap; }
+  .row-src { font-size: 12px; color: #00ff00; text-transform: uppercase; letter-spacing: 1px; }
+  .row-time { font-size: 12px; color: #5a6b64; }
+  .hot-tag { font-size: 12px; color: #ff7a45; }
+  .evento-tag { font-size: 12px; color: #5cc8ff; background: #0d1a26; padding: 1px 7px; border-radius: 3px; }
+  .row-coin { font-size: 12px; background: #16221d; color: #9bb5ac; padding: 1px 5px; border-radius: 3px; }
+  .row-tema { font-size: 12px; background: #1a1410; color: #ff9d5c; padding: 1px 7px; border-radius: 3px; }
+  .news-title { font-size: 17px; line-height: 1.4; color: #d8e6e0; font-weight: 500; transition: color .2s ease; }
+  .row-open { flex-shrink: 0; align-self: center; color: #5a6b64; font-size: 19px; }
+  .ico-go { height: 21px; width: auto; display: block; opacity: .85; transition: opacity .2s; }
+  .ico-go-sm { height: 16px; width: auto; vertical-align: middle; margin-left: 5px; }
+  .load-more { display: block; width: calc(100% - 36px); margin: 16px 18px 24px; padding: 14px; background: transparent; border: 1px solid #1f2d28; color: #9bb5ac; border-radius: 8px; font-family: inherit; font-size: 15px; cursor: pointer; transition: border-color .2s, color .2s; }
+  .news-panel { padding: 6px 18px 20px 52px; }
+  .news-resumen { font-size: 15px; line-height: 1.6; color: #c8d6d0; margin: 0 0 14px 0; }
+  .news-orig { font-size: 13px; line-height: 1.5; color: #6b7d76; margin: 0 0 14px 0; font-style: italic; }
+  .read-btn { display: inline-flex; align-items: center; background: #0d1f18; border: 1px solid #00ff00; color: #00ff00; padding: 8px 16px; border-radius: 6px; font-family: inherit; font-size: 14px; text-decoration: none; }
+  @keyframes slidein { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+  /* Efectos hover SOLO en dispositivos con mouse real (desktop).
+     En mobile el hover queda "pegado" al tocar y causa trabas en el scroll. */
+  @media (hover: hover) {
+    .news-row:hover { border-color: #00ff00 !important; box-shadow: inset 0 0 0 1px #00ff0033, 0 0 12px #00ff0022; }
+    .news-row:hover .news-row-main { background: #222; }
+    .news-row:hover .news-title { color: #00ff00; }
+    .news-row:hover .ico-go { opacity: 1; }
+    .load-more:hover { border-color: #00ff00; color: #00ff00; }
+    .read-btn:hover { background: #00ff00; color: #080c0a; }
+  }
+
+  @media (max-width: 600px) {
+    header { padding: 12px 14px; gap: 10px; }
+    .brand { width: 100%; justify-content: space-between; }
+    .logo { height: 32px; }
+    .toolbar { padding: 10px 14px; gap: 8px; }
+    .search { flex: 1 1 100%; min-width: 0; padding: 11px 12px; font-size: 16px; }
+    select { flex: 1; min-width: 0; padding: 11px 8px; font-size: 14px; }
+    .news-row-main { padding: 12px 12px; gap: 8px; }
+    .news-panel { padding: 6px 14px 18px 38px; }
+    .news-orig { font-size: 13px; margin-bottom: 14px; }
+    .rank { min-width: 18px; font-size: 12px; }
+    .news-title { font-size: 16px; line-height: 1.35; }
+    .row-head { gap: 6px; margin-bottom: 4px; }
+    .row-src { font-size: 11px; }
+    .row-time, .hot-tag, .row-coin, .row-tema { font-size: 11px; }
+    .row-open { font-size: 17px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <img class="logo" src="https://static.wixstatic.com/media/a297a9_fc9af5584e4440968223c6dc323710bf~mv2.png" alt="Archivo Cripto" onerror="this.style.display='none'">
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> POWER NEWS</span><span class="version">v4.5</span></span>
+    </div>
+    <div class="updated" id="updated"></div>
+  </header>
+  <div class="toolbar">
+    <input id="search" class="search" placeholder="Buscar en titulares…">
+    <select id="f-source"><option value="all">Fuentes</option></select>
+    <select id="f-coin"><option value="all">Activo</option></select>
+    <button id="f-multi" class="filter-btn">Temas calientes</button>
+  </div>
+  <div id="list" class="list"><div class="empty">Cargando noticias…</div></div>
+</div>
+
+<script>
+// ── Archivo Cripto · Noticias en vivo ────────────────────────────────────────
+// Lee el JSON ya procesado por el motor de la Mac Mini (traducido al español,
+// rankeado por importancia y agrupado por tema), servido vía túnel Cloudflare.
+var NEWS_URL = "https://noticias.archivocripto.app/news-data";
+var COINS = ["BTC","ETH","SOL","XRP","HYPE","BNB","DOGE","ADA","AVAX","LINK"];
+
+var items = [];
+var q = "", fSource = "all", fCoin = "all", fMulti = false;
+var expandedId = null;
+var visibleCount = 20;
+var pollTimer = null;
+
+function timeAgo(ts){
+  var s = Math.floor((Date.now()-ts)/1000);
+  if(s<60) return s+"s";
+  if(s<3600) return Math.floor(s/60)+"m";
+  if(s<86400) return Math.floor(s/3600)+"h";
+  return Math.floor(s/86400)+"d";
+}
+function clip(t,n){ n=n||160; t=t||""; return t.length>n ? t.slice(0,n).trim()+"…" : t; }
+function esc(s){ var d=document.createElement("div"); d.textContent=s||""; return d.innerHTML; }
+
+function loadNews(){
+  fetch(NEWS_URL, { cache: "no-store" })
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(data){
+      items = (data.items || []).map(function(it){
+        return {
+          id: it.id,
+          source: it.source,
+          title: it.titulo_es || it.title,
+          resumen: it.resumen_es || "",
+          original: (it.titulo_es && it.titulo_es !== it.title) ? it.title : "",
+          url: it.url,
+          ts: it.ts || Date.now(),
+          coins: it.coins || [],
+          tema: it.tema || "",
+          fuentes_tema: it.fuentes_tema || 1,
+          urgencia: it.urgencia || 0,
+          score: it.score || 0,
+          evento_cerca: it.evento_cerca || false
+        };
+      });
+      var when = data.updatedAt ? new Date(data.updatedAt) : null;
+      document.getElementById("updated").textContent = when
+        ? "Actualizado hace " + timeAgo(when.getTime())
+        : "";
+      render();
+    })
+    .catch(function(){
+      if(items.length === 0){
+        document.getElementById("list").innerHTML =
+          '<div class="empty">No se pudieron cargar las noticias en este momento.<br>Reintentando…</div>';
+      }
+    });
+}
+
+function updateSourceFilter(){
+  var sel = document.getElementById("f-source");
+  var present = {};
+  items.forEach(function(it){ present[it.source]=true; });
+  var cur = sel.value;
+  var opts = '<option value="all">Fuentes</option>';
+  Object.keys(present).sort().forEach(function(s){ opts += '<option value="'+esc(s)+'">'+esc(s)+'</option>'; });
+  sel.innerHTML = opts;
+  sel.value = cur;
+}
+
+function render(){
+  updateSourceFilter();
+  var list = document.getElementById("list");
+  var arrFull = items.filter(function(it){
+    if(q && it.title.toLowerCase().indexOf(q.toLowerCase())<0) return false;
+    if(fSource!=="all" && it.source!==fSource) return false;
+    if(fCoin!=="all" && it.coins.indexOf(fCoin)<0) return false;
+    if(fMulti && it.fuentes_tema < 3) return false;
+    return true;
+  }).sort(function(a,b){ return b.urgencia - a.urgencia; });
+  var arr = arrFull.slice(0, visibleCount);
+
+  if(arr.length===0){
+    list.innerHTML = '<div class="empty">'+(items.length?'No hay noticias que coincidan con el filtro.':'Cargando noticias…')+'</div>';
+    return;
+  }
+
+  var html = "";
+  for(var i=0;i<arr.length;i++){
+    var it = arr[i];
+    var hot = it.score >= 70;
+    var isOpen = expandedId === it.id;
+    var coinsHtml = it.coins.slice(0,3).map(function(c){ return '<span class="row-coin">'+c+'</span>'; }).join("");
+    var temaHtml = (it.tema && it.fuentes_tema >= 2)
+      ? '<span class="row-tema">'+esc(it.tema)+' · '+it.fuentes_tema+' fuentes</span>'
+      : (it.tema ? '<span class="row-tema">'+esc(it.tema)+'</span>' : "");
+    var panel = "";
+    if(isOpen){
+      panel = panelHtml(it);
+    }
+    html += '<div class="news-row'+(i%2===1?' alt':'')+(isOpen?' open':'')+'" data-id="'+esc(it.id)+'">'
+      + '<div class="news-row-main">'
+      + '<span class="rank'+(hot?' hot':'')+'">'+(i+1)+'</span>'
+      + '<div style="flex:1">'
+      + '<div class="row-head">'
+      + '<span class="row-src">'+esc(it.source)+'</span>'
+      + '<span class="row-time">'+timeAgo(it.ts)+'</span>'
+      + (hot?'<span class="hot-tag">🔥 urgente</span>':'')
+      + (it.evento_cerca?'<span class="evento-tag">📅 dato clave</span>':'')
+      + temaHtml
+      + coinsHtml
+      + '</div>'
+      + '<div class="news-title">'+esc(clip(it.title))+'</div>'
+      + '</div>'
+      + '<span class="row-open">'+(isOpen?'▾':'<img class="ico-go" src="https://static.wixstatic.com/media/a297a9_11511c399c0a442f9b66c17012f7a57e~mv2.png" alt="ir">')+'</span>'
+      + '</div>'
+      + panel
+      + '</div>';
+  }
+  if(arrFull.length > visibleCount){
+    html += '<button id="load-more" class="load-more">Cargar más ↓</button>';
+  }
+  list.innerHTML = html;
+
+  var rows = list.querySelectorAll(".news-row");
+  for(var k=0;k<rows.length;k++){
+    (function(rowMain){
+      // Un click simple: el navegador ya distingue tap de scroll (si scrolleás,
+      // no dispara click). No hace falta lógica manual de touch, que trababa.
+      rowMain.addEventListener("click", function(){
+        toggleRow(rowMain.parentNode.getAttribute("data-id"));
+      });
+    })(rows[k].querySelector(".news-row-main"));
+  }
+  var moreBtn = document.getElementById("load-more");
+  if(moreBtn){
+    moreBtn.addEventListener("click", function(){ visibleCount += 20; render(); });
+  }
+}
+
+// Arma el HTML del panel desplegable de una noticia.
+function panelHtml(it){
+  var resumenHtml = it.resumen ? '<p class="news-resumen">'+esc(it.resumen)+'</p>' : '';
+  var origHtml = it.original ? '<p class="news-orig">Original: '+esc(it.original)+'</p>' : '';
+  return '<div class="news-panel">'
+    + resumenHtml
+    + origHtml
+    + (it.url ? '<a class="read-btn" href="'+esc(it.url)+'" target="_blank" rel="noopener noreferrer">Leer en '+esc(it.source)+' <img class="ico-go-sm" src="https://static.wixstatic.com/media/a297a9_11511c399c0a442f9b66c17012f7a57e~mv2.png" alt=""></a>' : '')
+    + '</div>';
+}
+
+// Despliega/pliega SOLO la fila tocada, sin reconstruir la lista entera.
+// Así el scroll nunca se mueve y no hay saltos (importante dentro del iframe de Wix).
+function toggleRow(id){
+  var row = document.querySelector('.news-row[data-id="'+(window.CSS && CSS.escape ? CSS.escape(id) : id)+'"]');
+  if(!row){ expandedId = (expandedId === id) ? null : id; render(); return; }
+  var abrir = expandedId !== id;
+
+  // Cerrar la que estuviera abierta (si es otra)
+  if(expandedId && expandedId !== id){
+    var prev = document.querySelector('.news-row.open');
+    if(prev){
+      prev.classList.remove("open");
+      var pIcon = prev.querySelector(".row-open");
+      if(pIcon) pIcon.innerHTML = '<img class="ico-go" src="https://static.wixstatic.com/media/a297a9_11511c399c0a442f9b66c17012f7a57e~mv2.png" alt="ir">';
+      var pPanel = prev.querySelector(".news-panel");
+      if(pPanel) pPanel.remove();
+    }
+  }
+
+  var icon = row.querySelector(".row-open");
+  if(abrir){
+    expandedId = id;
+    row.classList.add("open");
+    if(icon) icon.innerHTML = "▾";
+    var it = items.find(function(x){ return x.id === id; });
+    if(it){ row.insertAdjacentHTML("beforeend", panelHtml(it)); }
+  } else {
+    expandedId = null;
+    row.classList.remove("open");
+    if(icon) icon.innerHTML = '<img class="ico-go" src="https://static.wixstatic.com/media/a297a9_11511c399c0a442f9b66c17012f7a57e~mv2.png" alt="ir">';
+    var panel = row.querySelector(".news-panel");
+    if(panel) panel.remove();
+  }
+}
+
+(function(){
+  var sel = document.getElementById("f-coin");
+  COINS.forEach(function(c){ var o=document.createElement("option"); o.value=c; o.textContent=c; sel.appendChild(o); });
+})();
+
+document.getElementById("search").addEventListener("input", function(e){ q=e.target.value; visibleCount=20; render(); });
+document.getElementById("f-source").addEventListener("change", function(e){ fSource=e.target.value; visibleCount=20; render(); });
+document.getElementById("f-coin").addEventListener("change", function(e){ fCoin=e.target.value; visibleCount=20; render(); });
+document.getElementById("f-multi").addEventListener("click", function(){
+  fMulti = !fMulti;
+  this.classList.toggle("on", fMulti);
+  visibleCount=20; render();
+});
+
+if(window.innerWidth <= 600) visibleCount = 12;
+
+setInterval(render, 30000);
+pollTimer = setInterval(loadNews, 120000);
+
+loadNews();
+</script>
+</body>
+</html>
