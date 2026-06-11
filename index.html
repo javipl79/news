@@ -267,7 +267,7 @@ display: flex; align-items: center; justify-content: center; cursor: pointer; li
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.6</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.7</span></span>
     </div>
     <div class="updated" id="updated"><span class="env-sub" id="updated-sub"></span></div>
   </header>
@@ -334,11 +334,11 @@ function timeAgo(ts){
   return Math.floor(s/86400)+"d";
 }
 // Vida útil de una noticia en horas, según su importancia (urgencia).
-// Las importantes envejecen en cámara lenta; las flojas se enfrían rápido.
-// urgencia ~0  → 6h | urgencia 50 → ~13h | urgencia 90+ → ~30h | tope 36h
+// Más agresivo: las flojas se enfrían en ~2h, las importantes duran hasta ~12h.
+// urgencia ~0 → 2h | urgencia 50 → ~7h | urgencia 90+ → ~11h | tope 12h
 function vidaHoras(it){
   var u = it.urgencia || 0;
-  return Math.min(36, 6 + (u/100) * 30);
+  return Math.min(12, 2 + (u/100) * 10);
 }
 // Frescura 0–100: 100 recién salida, baja hasta ~3 al agotar su vida útil.
 // Una noticia importante mantiene la barra alta más tiempo → se queda arriba.
