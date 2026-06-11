@@ -251,7 +251,7 @@ display: flex; align-items: center; justify-content: center; cursor: pointer; li
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.0</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.1</span></span>
     </div>
     <div class="updated" id="updated"><span class="env-sub" id="updated-sub"></span></div>
   </header>
@@ -449,19 +449,20 @@ function render(){
     if(isOpen){
       panel = panelHtml(it);
     }
-    // DOS CAPAS: (1) barra de vejez que se llena de izq→der según frescura,
-    // (2) tono de cebra alternado en el fondo para separar renglones.
+    // 4 tonos de gris: la barra de vejez (parte llena) y el resto, alternados por renglón (cebra).
     var fresc = frescura(it);
-    var col, base;
+    var barra, resto;
     if(fMulti){
-      col = "rgba(255,107,53,0.28)";              // barra brasa
-      base = (i % 2 === 0) ? "#1a0d08" : "#241109"; // cebra rojo
+      // Modo caliente: 4 tonos de rojo.
+      if(i % 2 === 0){ barra = "#3a1a0e"; resto = "#1a0d08"; }
+      else           { barra = "#42200f"; resto = "#1f0f09"; }
     } else {
-      col = "rgba(0,255,0,0.14)";                  // barra verde
-      base = (i % 2 === 0) ? "#0d0d0d" : "#151515"; // cebra gris
+      // Normal: 4 tonos de gris.
+      if(i % 2 === 0){ barra = "#242424"; resto = "#0e0e0e"; } // renglón par
+      else           { barra = "#2c2c2c"; resto = "#161616"; } // renglón impar
     }
-    // La barra (col) llega hasta fresc%, después queda el tono de cebra (base).
-    var bgFila = "linear-gradient(to right, "+col+" 0%, "+col+" "+Math.max(0,fresc-6)+"%, "+base+" "+fresc+"%, "+base+" 100%)";
+    // La barra (gris claro) llega hasta fresc%, después el resto (gris oscuro).
+    var bgFila = "linear-gradient(to right, "+barra+" 0%, "+barra+" "+Math.max(0,fresc-6)+"%, "+resto+" "+fresc+"%, "+resto+" 100%)";
     html += '<div class="news-row'+(isOpen?' open':'')+(it.esNueva?' nueva':'')+'" data-id="'+esc(it.id)+'" style="background:'+bgFila+'">'
       + '<div class="news-row-main">'
       + '<span class="rank'+(hot?' hot':'')+'">'+(i+1)+'</span>'
