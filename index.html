@@ -3,7 +3,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Pulso · Archivo Cripto</title>
 <!-- PWA: permite instalar Pulso en el teléfono -->
 <link rel="manifest" href="manifest.json" />
@@ -272,7 +272,7 @@ display: flex; align-items: center; justify-content: center; cursor: pointer; li
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.14</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.15</span></span>
     </div>
     <div class="updated" id="updated"><span class="env-sub" id="updated-sub"></span><button id="btn-refrescar" class="btn-refrescar" aria-label="Refrescar" title="Refrescar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button></div>
   </header>
@@ -622,18 +622,6 @@ setInterval(render, 30000);
 pollTimer = setInterval(loadNews, 120000);
 
 loadNews();
-
-// Bloquear pinch-zoom en iOS (Safari ignora user-scalable=no, hay que hacerlo por JS).
-document.addEventListener("gesturestart", function(e){ e.preventDefault(); }, { passive: false });
-document.addEventListener("gesturechange", function(e){ e.preventDefault(); }, { passive: false });
-document.addEventListener("gestureend", function(e){ e.preventDefault(); }, { passive: false });
-// Bloquear doble-tap para hacer zoom
-var ultimoTap = 0;
-document.addEventListener("touchend", function(e){
-  var ahora = Date.now();
-  if(ahora - ultimoTap <= 300){ e.preventDefault(); }
-  ultimoTap = ahora;
-}, { passive: false });
 
 // Registrar el service worker (habilita instalar Pulso como app)
 if ("serviceWorker" in navigator) {
