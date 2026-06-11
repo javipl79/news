@@ -39,7 +39,11 @@ header { display: flex; justify-content: space-between; align-items: center; pad
 .version { font-size: 11px; color: #888; letter-spacing: .5px; }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
 
-.updated { font-size: 12px; color: #5a6b64; }
+.updated { font-size: 12px; color: #5a6b64; display: flex; align-items: center; gap: 10px; }
+.env { display: inline-flex; align-items: center; gap: 6px; color: #00ff00; font-weight: 600; letter-spacing: .3px; }
+.env-dot { width: 7px; height: 7px; border-radius: 50%; background: #00ff00; box-shadow: 0 0 6px #00ff00; animation: pulse 1.5s infinite; }
+.env-sub { color: #5a6b64; font-size: 11px; }
+.hot-mode-page .env { color: #ff6b35; }
 
 .toolbar { display: flex; gap: 10px; padding: 12px 20px; align-items: center; border-bottom: 1px solid #16221d; flex-wrap: wrap; justify-content: flex-start; }
 .search { flex: 0 1 320px; min-width: 180px; background: #0f1714; border: 1px solid #1f2d28; color: #d8e6e0; padding: 8px 12px; border-radius: 6px; font-family: inherit; font-size: 15px; outline: none; }
@@ -57,11 +61,21 @@ select { flex: 0 0 auto; min-width: 110px; background: #0f1714; border: 1px soli
 .list { }
 .empty { padding: 30px; color: #5a6b64; font-size: 15px; text-align: center; }
 
-.news-row { position: relative; background: #0d0d0d; border: 1px solid transparent; color: #d8e6e0; }
-/* Barra de frescura en la base de cada noticia (qué tan nueva es) */
-.frescura { height: 3px; width: auto; margin: 0 18px 8px 48px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; }
-.frescura-fill { height: 100%; background: #00ff00; box-shadow: 0 0 8px #00ff0088; transition: width .6s ease; border-radius: 2px; }
-.hot-mode .frescura-fill { background: #ff6b35; box-shadow: 0 0 8px #ff6b3599; }
+.news-row { position: relative; background: #0d0d0d; border: 1px solid transparent; color: #d8e6e0; transition: background .6s ease; }
+/* Entrada de noticias nuevas: aparecen con un destello verde que se desvanece */
+.news-row.nueva { animation: entra-nueva .9s ease both; }
+@keyframes entra-nueva {
+0%   { opacity: 0; transform: translateY(-12px); box-shadow: inset 0 0 0 9999px rgba(0,255,0,.12); }
+60%  { opacity: 1; transform: translateY(0); box-shadow: inset 0 0 0 9999px rgba(0,255,0,.06); }
+100% { box-shadow: inset 0 0 0 9999px rgba(0,255,0,0); }
+}
+.hot-mode .news-row.nueva { animation: entra-nueva-hot .9s ease both; }
+@keyframes entra-nueva-hot {
+0%   { opacity: 0; transform: translateY(-12px); box-shadow: inset 0 0 0 9999px rgba(255,107,53,.15); }
+60%  { opacity: 1; transform: translateY(0); box-shadow: inset 0 0 0 9999px rgba(255,107,53,.08); }
+100% { box-shadow: inset 0 0 0 9999px rgba(255,107,53,0); }
+}
+@media (prefers-reduced-motion: reduce) { .news-row.nueva { animation: none; } }
 .news-row.alt { background: #1a1a1a; }
 .news-row-main { display: flex; align-items: flex-start; gap: 12px; padding: 12px 18px; cursor: pointer; -webkit-user-select: none; user-select: none; }
 .news-row.open { border-color: #00ff0055; }
@@ -241,9 +255,9 @@ display: flex; align-items: center; justify-content: center; cursor: pointer; li
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v8.4</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v8.6</span></span>
     </div>
-    <div class="updated" id="updated"></div>
+    <div class="updated" id="updated"><span class="env"><span class="env-dot"></span>En vivo</span><span class="env-sub" id="updated-sub"></span></div>
   </header>
   <div class="toolbar">
     <input id="search" class="search" placeholder="Buscar en titulares…">
@@ -326,6 +340,10 @@ function loadNews(){
   fetch(NEWS_URL, { cache: "no-store" })
     .then(function(r){ if(!r.ok) throw 0; return r.json(); })
     .then(function(data){
+      var primeracarga = (items.length === 0);
+      // IDs que ya teníamos, para detectar las nuevas y animarlas al entrar.
+      var idsViejos = {};
+      items.forEach(function(it){ idsViejos[it.id] = true; });
       items = (data.items || []).map(function(it){
         return {
           id: it.id,
@@ -340,12 +358,14 @@ function loadNews(){
           fuentes_tema: it.fuentes_tema || 1,
           urgencia: it.urgencia || 0,
           score: it.score || 0,
-          evento_cerca: it.evento_cerca || false
+          evento_cerca: it.evento_cerca || false,
+          // Es nueva si no estaba antes (y no es la primera carga de la página).
+          esNueva: !primeracarga && !idsViejos[it.id]
         };
       });
       var when = data.updatedAt ? new Date(data.updatedAt) : null;
-      document.getElementById("updated").textContent = when
-        ? "Actualizado hace " + timeAgo(when.getTime())
+      document.getElementById("updated-sub").textContent = when
+        ? "última tanda hace " + timeAgo(when.getTime())
         : "";
       render();
     })
@@ -433,9 +453,18 @@ function render(){
     if(isOpen){
       panel = panelHtml(it);
     }
-    // Barra de frescura: las importantes bajan lento, las flojas rápido. No borra, solo enfría.
+    // Fondo sutil según frescura: fresca = un toque más iluminada, vieja = más hundida.
     var fresc = frescura(it);
-    html += '<div class="news-row'+(i%2===1?' alt':'')+(isOpen?' open':'')+'" data-id="'+esc(it.id)+'">'
+    var bgFila;
+    if(fMulti){
+      // Modo caliente: tonos brasa (rojizos) según frescura.
+      var lr = 26 + Math.round((fresc/100) * 14); // rojo 26→40
+      bgFila = "rgb("+lr+","+Math.round(lr*0.5)+","+Math.round(lr*0.3)+")";
+    } else {
+      var lum = 7 + Math.round((fresc/100) * 9); // 7% (vieja) → 16% (fresca)
+      bgFila = "rgb("+lum+","+lum+","+lum+")";
+    }
+    html += '<div class="news-row'+(isOpen?' open':'')+(it.esNueva?' nueva':'')+'" data-id="'+esc(it.id)+'" style="background:'+bgFila+'">'
       + '<div class="news-row-main">'
       + '<span class="rank'+(hot?' hot':'')+'">'+(i+1)+'</span>'
       + '<div style="flex:1">'
@@ -452,7 +481,6 @@ function render(){
       + '<span class="row-open">'+(isOpen?'▾':'<img class="ico-go" src="ico-flecha.png" alt="ir">')+'</span>'
       + '</div>'
       + panel
-      + '<div class="frescura"><div class="frescura-fill" style="width:'+fresc+'%"></div></div>'
       + '</div>';
   }
   if(arrFull.length > visibleCount){
