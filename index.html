@@ -59,8 +59,8 @@ select { flex: 0 0 auto; min-width: 110px; background: #0f1714; border: 1px soli
 
 .news-row { position: relative; background: #0d0d0d; border: 1px solid transparent; color: #d8e6e0; }
 /* Barra de frescura en la base de cada noticia (qué tan nueva es) */
-.frescura { height: 3px; width: 100%; background: rgba(255,255,255,0.04); overflow: hidden; }
-.frescura-fill { height: 100%; background: #00ff00; box-shadow: 0 0 8px #00ff0088; transition: width .6s ease; border-radius: 0 2px 2px 0; }
+.frescura { height: 3px; width: auto; margin: 0 18px 8px 48px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; }
+.frescura-fill { height: 100%; background: #00ff00; box-shadow: 0 0 8px #00ff0088; transition: width .6s ease; border-radius: 2px; }
 .hot-mode .frescura-fill { background: #ff6b35; box-shadow: 0 0 8px #ff6b3599; }
 .news-row.alt { background: #1a1a1a; }
 .news-row-main { display: flex; align-items: flex-start; gap: 12px; padding: 12px 18px; cursor: pointer; -webkit-user-select: none; user-select: none; }
@@ -241,7 +241,7 @@ display: flex; align-items: center; justify-content: center; cursor: pointer; li
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v8.2</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v8.4</span></span>
     </div>
     <div class="updated" id="updated"></div>
   </header>
@@ -296,7 +296,7 @@ var COINS = ["BTC","ETH","SOL","XRP","HYPE","BNB","DOGE","ADA","AVAX","LINK"];
 var items = [];
 var q = "", fSource = "all", fCoin = "all", fMulti = false, fTema = null;
 var expandedId = null;
-var visibleCount = 20;
+var visibleCount = 30;
 var pollTimer = null;
 
 function timeAgo(ts){
@@ -305,6 +305,19 @@ function timeAgo(ts){
   if(s<3600) return Math.floor(s/60)+"m";
   if(s<86400) return Math.floor(s/3600)+"h";
   return Math.floor(s/86400)+"d";
+}
+// Vida útil de una noticia en horas, según su importancia (urgencia).
+// Las importantes envejecen en cámara lenta; las flojas se enfrían rápido.
+// urgencia ~0  → 6h | urgencia 50 → ~13h | urgencia 90+ → ~30h | tope 36h
+function vidaHoras(it){
+  var u = it.urgencia || 0;
+  return Math.min(36, 6 + (u/100) * 30);
+}
+// Frescura 0–100: 100 recién salida, baja hasta ~3 al agotar su vida útil.
+// Una noticia importante mantiene la barra alta más tiempo → se queda arriba.
+function frescura(it){
+  var horas = (Date.now() - it.ts) / 3600000;
+  return Math.max(3, Math.round(100 - (horas / vidaHoras(it)) * 100));
 }
 function clip(t,n){ n=n||160; t=t||""; return t.length>n ? t.slice(0,n).trim()+"…" : t; }
 function esc(s){ var d=document.createElement("div"); d.textContent=s||""; return d.innerHTML; }
@@ -376,7 +389,7 @@ function renderChips(){
       else if(t==="tema"){ fTema=null; }
       else if(t==="hot"){ fMulti=false; document.getElementById("f-multi").classList.remove("on"); }
       else if(t==="q"){ q=""; document.getElementById("search").value=""; }
-      visibleCount=20; render();
+      visibleCount=30; render();
     });
   });
 }
@@ -393,7 +406,13 @@ function render(){
     if(fMulti && (it.urgencia||0) < 90) return false;
     if(fTema && it.tema !== fTema) return false;
     return true;
-  }).sort(function(a,b){ return b.urgencia - a.urgencia; });
+  }).sort(function(a,b){
+    // Modo Calientes: manda la importancia pura (urgencia).
+    if(fMulti) return b.urgencia - a.urgencia;
+    // Feed normal: manda la frescura efectiva (las importantes envejecen lento,
+    // así lo crítico se mantiene arriba sin tapar el flujo en vivo).
+    return frescura(b) - frescura(a);
+  });
   var arr = arrFull.slice(0, visibleCount);
 
   if(arr.length===0){
@@ -414,9 +433,8 @@ function render(){
     if(isOpen){
       panel = panelHtml(it);
     }
-    // Frescura: 100% recién salida, baja hasta ~3% a las 12h (no desaparece, solo se enfría).
-    var horas = (Date.now() - it.ts) / 3600000;
-    var fresc = Math.max(3, Math.round(100 - (horas/12)*100));
+    // Barra de frescura: las importantes bajan lento, las flojas rápido. No borra, solo enfría.
+    var fresc = frescura(it);
     html += '<div class="news-row'+(i%2===1?' alt':'')+(isOpen?' open':'')+'" data-id="'+esc(it.id)+'">'
       + '<div class="news-row-main">'
       + '<span class="rank'+(hot?' hot':'')+'">'+(i+1)+'</span>'
@@ -518,19 +536,19 @@ function toggleRow(id){
   COINS.forEach(function(c){ var o=document.createElement("option"); o.value=c; o.textContent=c; sel.appendChild(o); });
 })();
 
-document.getElementById("search").addEventListener("input", function(e){ q=e.target.value; visibleCount=20; render(); });
-document.getElementById("f-source").addEventListener("change", function(e){ fSource=e.target.value; visibleCount=20; render(); });
-document.getElementById("f-coin").addEventListener("change", function(e){ fCoin=e.target.value; visibleCount=20; render(); });
+document.getElementById("search").addEventListener("input", function(e){ q=e.target.value; visibleCount=30; render(); });
+document.getElementById("f-source").addEventListener("change", function(e){ fSource=e.target.value; visibleCount=30; render(); });
+document.getElementById("f-coin").addEventListener("change", function(e){ fCoin=e.target.value; visibleCount=30; render(); });
 document.getElementById("f-multi").addEventListener("click", function(){
   fMulti = !fMulti;
   this.classList.toggle("on", fMulti);
-  visibleCount=20; render();
+  visibleCount=30; render();
 });
 
 // En mobile arrancamos con bastantes noticias. Con pocas, al desplegar una el
 // contenedor queda justo en el límite de su altura y iOS traba el scroll.
 // Con contenido de sobra, el scroll siempre funciona bien.
-if(window.innerWidth <= 600) visibleCount = 30;
+/* mobile y desktop arrancan en 30 */
 
 setInterval(render, 30000);
 pollTimer = setInterval(loadNews, 120000);
