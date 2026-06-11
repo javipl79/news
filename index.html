@@ -267,7 +267,7 @@ display: flex; align-items: center; justify-content: center; cursor: pointer; li
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.5</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.6</span></span>
     </div>
     <div class="updated" id="updated"><span class="env-sub" id="updated-sub"></span></div>
   </header>
@@ -473,13 +473,13 @@ function render(){
     var fresc = frescura(it);
     var barra, resto;
     if(fMulti){
-      // Modo caliente: una fila rojiza, la otra naranja oscuro (más diferencia entre filas).
-      if(i % 2 === 0){ barra = "#3a1208"; resto = "#1a0804"; } // rojizo
-      else           { barra = "#3d2008"; resto = "#1c1003"; } // naranja oscuro
+      // Modo caliente: una fila rojiza, la otra naranja oscuro (con buena diferencia).
+      if(i % 2 === 0){ barra = "#3a1006"; resto = "#180603"; } // rojizo
+      else           { barra = "#44260a"; resto = "#221405"; } // naranja oscuro (más separado)
     } else {
-      // Normal: una fila bien oscura, la otra claramente más clara (más diferencia).
-      if(i % 2 === 0){ barra = "#101010"; resto = "#030303"; } // fila oscura
-      else           { barra = "#222222"; resto = "#0e0e0e"; } // fila más clara
+      // Normal: cebra sutil, poca diferencia entre filas.
+      if(i % 2 === 0){ barra = "#161616"; resto = "#060606"; } // fila oscura
+      else           { barra = "#1c1c1c"; resto = "#0a0a0a"; } // fila apenas más clara
     }
     var corte = Math.max(0, Math.min(98, fresc));
     html += '<div class="news-row'+(isOpen?' open':'')+(it.esNueva?' nueva':'')+'" data-id="'+esc(it.id)+'" style="background:'+resto+'">'
