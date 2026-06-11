@@ -58,7 +58,7 @@ select { flex: 0 0 auto; min-width: 110px; background: #0f1714; border: 1px soli
 .list { }
 .empty { padding: 30px; color: #5a6b64; font-size: 15px; text-align: center; }
 
-.news-row { position: relative; background: #0a0a0a; border: 1px solid transparent; border-radius: 8px; color: #d8e6e0; margin: 6px 10px; transition: background .6s ease; }
+.news-row { position: relative; background: #0a0a0a; border: 1px solid transparent; border-radius: 8px; overflow: hidden; color: #d8e6e0; margin: 6px 10px; transition: background .6s ease; }
 /* Entrada de noticias nuevas: aparecen con un destello verde que se desvanece */
 .news-row.nueva { animation: entra-nueva .9s ease both; }
 @keyframes entra-nueva {
@@ -251,7 +251,7 @@ display: flex; align-items: center; justify-content: center; cursor: pointer; li
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v8.9</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.0</span></span>
     </div>
     <div class="updated" id="updated"><span class="env-sub" id="updated-sub"></span></div>
   </header>
@@ -449,16 +449,19 @@ function render(){
     if(isOpen){
       panel = panelHtml(it);
     }
-    // Cebra: filas alternadas en dos tonos para separar visualmente una noticia de otra.
-    var fresc = frescura(it); // (se sigue usando para el orden, no para el fondo)
-    var bgFila;
+    // DOS CAPAS: (1) barra de vejez que se llena de izq→der según frescura,
+    // (2) tono de cebra alternado en el fondo para separar renglones.
+    var fresc = frescura(it);
+    var col, base;
     if(fMulti){
-      // Modo caliente: dos tonos de rojo alternados.
-      bgFila = (i % 2 === 0) ? "#1a0d08" : "#241109";
+      col = "rgba(255,107,53,0.28)";              // barra brasa
+      base = (i % 2 === 0) ? "#1a0d08" : "#241109"; // cebra rojo
     } else {
-      // Normal: dos tonos de gris alternados.
-      bgFila = (i % 2 === 0) ? "#0d0d0d" : "#141414";
+      col = "rgba(0,255,0,0.14)";                  // barra verde
+      base = (i % 2 === 0) ? "#0d0d0d" : "#151515"; // cebra gris
     }
+    // La barra (col) llega hasta fresc%, después queda el tono de cebra (base).
+    var bgFila = "linear-gradient(to right, "+col+" 0%, "+col+" "+Math.max(0,fresc-6)+"%, "+base+" "+fresc+"%, "+base+" 100%)";
     html += '<div class="news-row'+(isOpen?' open':'')+(it.esNueva?' nueva':'')+'" data-id="'+esc(it.id)+'" style="background:'+bgFila+'">'
       + '<div class="news-row-main">'
       + '<span class="rank'+(hot?' hot':'')+'">'+(i+1)+'</span>'
