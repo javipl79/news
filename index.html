@@ -89,7 +89,7 @@ select { flex: 0 0 auto; min-width: 110px; background: #0f1714; border: 1px soli
 100% { box-shadow: inset 0 0 0 9999px rgba(255,107,53,0); }
 }
 @media (prefers-reduced-motion: reduce) { .news-row.nueva { animation: none; } }
-.news-row-main { display: flex; align-items: flex-start; gap: 12px; padding: 12px 18px; cursor: pointer; -webkit-user-select: none; user-select: none; }
+.news-row-main { display: flex; align-items: flex-start; gap: 12px; padding: 16px 18px; cursor: pointer; -webkit-user-select: none; user-select: none; }
 .news-row.open { border-color: #00ff0055; }
 .news-row.open .news-row-main { padding-bottom: 14px; }
 .rank { font-size: 13px; color: #5a6b64; min-width: 22px; text-align: right; }
@@ -173,7 +173,7 @@ header { padding: 12px 14px; padding-top: calc(12px + env(safe-area-inset-top));
 .toolbar { padding: 10px 14px; gap: 8px; }
 .search { flex: 1 1 100%; min-width: 0; padding: 11px 12px; font-size: 16px; }
 select { flex: 1; min-width: 0; padding: 11px 8px; font-size: 14px; }
-.news-row-main { padding: 12px 12px; gap: 8px; }
+.news-row-main { padding: 14px 14px; gap: 8px; }
 .news-panel { padding: 6px 14px 18px 38px; }
 .news-orig { font-size: 13px; margin-bottom: 14px; }
 .rank { min-width: 18px; font-size: 12px; }
@@ -267,7 +267,7 @@ display: flex; align-items: center; justify-content: center; cursor: pointer; li
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.9</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.10</span></span>
     </div>
     <div class="updated" id="updated"><span class="env-sub" id="updated-sub"></span></div>
   </header>
@@ -345,6 +345,11 @@ function vidaHoras(it){
 function frescura(it){
   var horas = (Date.now() - it.ts) / 3600000;
   return Math.max(3, Math.round(100 - (horas / vidaHoras(it)) * 100));
+}
+// Una noticia está caliente si tiene urgencia alta Y su barra todavía no se enfrió.
+// Cuando la frescura baja del 20%, se "enfría" y pasa a ser una noticia común.
+function esCaliente(it){
+  return (it.urgencia || 0) >= 90 && frescura(it) > 20;
 }
 function clip(t,n){ n=n||160; t=t||""; return t.length>n ? t.slice(0,n).trim()+"…" : t; }
 function esc(s){ var d=document.createElement("div"); d.textContent=s||""; return d.innerHTML; }
@@ -437,7 +442,7 @@ function render(){
     if(q && it.title.toLowerCase().indexOf(q.toLowerCase())<0) return false;
     if(fSource!=="all" && it.source!==fSource) return false;
     if(fCoin!=="all" && it.coins.indexOf(fCoin)<0) return false;
-    if(fMulti && (it.urgencia||0) < 90) return false;
+    if(fMulti && !esCaliente(it)) return false;
     if(fTema && it.tema !== fTema) return false;
     return true;
   }).sort(function(a,b){
@@ -457,7 +462,7 @@ function render(){
   var html = "";
   for(var i=0;i<arr.length;i++){
     var it = arr[i];
-    var hot = (it.urgencia||0) >= 90;
+    var hot = esCaliente(it);
     var isOpen = expandedId === it.id;
     var coinsHtml = it.coins.slice(0,3).map(function(c){ return '<span class="row-coin">'+c+'</span>'; }).join("");
     var temaHtml = (it.tema && it.fuentes_tema >= 2)
