@@ -59,6 +59,22 @@ select { flex: 0 0 auto; min-width: 110px; background: #0f1714; border: 1px soli
 .empty { padding: 30px; color: #5a6b64; font-size: 15px; text-align: center; }
 
 .news-row { position: relative; background: #0a0a0a; border: 1px solid transparent; border-radius: 8px; overflow: hidden; color: #d8e6e0; margin: 6px 10px; transition: background .6s ease; }
+/* Franja de vejez: capa sólida a la izquierda (sin gradiente). Su ancho = frescura. */
+.franja { position: absolute; top: 0; left: 0; bottom: 0; z-index: 0; }
+.franja.anim { animation: franja-carga .8s cubic-bezier(.22,.61,.36,1) both; }
+@keyframes franja-carga { from { width: 0 !important; } to { width: var(–w); } }
+/* El contenido va por encima de la franja */
+.news-row-main, .news-panel { position: relative; z-index: 1; }
+@media (prefers-reduced-motion: reduce) { .franja.anim { animation: none; } }
+/* Escalonado: cada franja entra un poco después que la de arriba */
+.news-row:nth-child(1) .franja.anim { animation-delay: 0s; }
+.news-row:nth-child(2) .franja.anim { animation-delay: .05s; }
+.news-row:nth-child(3) .franja.anim { animation-delay: .10s; }
+.news-row:nth-child(4) .franja.anim { animation-delay: .15s; }
+.news-row:nth-child(5) .franja.anim { animation-delay: .20s; }
+.news-row:nth-child(6) .franja.anim { animation-delay: .25s; }
+.news-row:nth-child(7) .franja.anim { animation-delay: .30s; }
+.news-row:nth-child(8) .franja.anim { animation-delay: .35s; }
 /* Entrada de noticias nuevas: aparecen con un destello verde que se desvanece */
 .news-row.nueva { animation: entra-nueva .9s ease both; }
 @keyframes entra-nueva {
@@ -251,7 +267,7 @@ display: flex; align-items: center; justify-content: center; cursor: pointer; li
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.3</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.4</span></span>
     </div>
     <div class="updated" id="updated"><span class="env-sub" id="updated-sub"></span></div>
   </header>
@@ -308,6 +324,7 @@ var q = "", fSource = "all", fCoin = "all", fMulti = false, fTema = null;
 var expandedId = null;
 var visibleCount = 30;
 var pollTimer = null;
+var animarFranjas = true; // anima las franjas solo al cargar/cambiar noticias, no en el refresco de reloj
 
 function timeAgo(ts){
   var s = Math.floor((Date.now()-ts)/1000);
@@ -363,6 +380,7 @@ function loadNews(){
       document.getElementById("updated-sub").textContent = when
         ? "Última actualización hace " + timeAgo(when.getTime())
         : "";
+      animarFranjas = true; // llegaron noticias → animar las franjas en este render
       render();
     })
     .catch(function(){
@@ -449,23 +467,21 @@ function render(){
     if(isOpen){
       panel = panelHtml(it);
     }
-    // 4 tonos: barra de vejez (corte limpio) + resto, alternados por renglón (cebra).
+    // Cebra: dos pares de tonos según renglón (par/impar). Sin gradiente.
+    // El fondo de la fila es el tono "resto" (oscuro). La franja de vejez es una
+    // capa sólida (tono "barra") encima, con ancho = frescura, animable al cargar.
     var fresc = frescura(it);
     var barra, resto;
     if(fMulti){
-      // Modo caliente: rojos muy oscuros.
       if(i % 2 === 0){ barra = "#1c0c06"; resto = "#0a0503"; }
       else           { barra = "#250f07"; resto = "#120804"; }
     } else {
-      // Normal: grises muy oscuros (apenas perceptibles, no compiten con el texto).
       if(i % 2 === 0){ barra = "#141414"; resto = "#040404"; } // renglón par
       else           { barra = "#1a1a1a"; resto = "#0c0c0c"; } // renglón impar
     }
-    // Corte limpio: barra hasta fresc%, después el resto. Tope 98% para que no quede
-    // la línea fina clara pegada al borde derecho cuando la frescura es ~100%.
     var corte = Math.max(0, Math.min(98, fresc));
-    var bgFila = "linear-gradient(to right, "+barra+" 0%, "+barra+" "+corte+"%, "+resto+" "+corte+"%, "+resto+" 100%)";
-    html += '<div class="news-row'+(isOpen?' open':'')+(it.esNueva?' nueva':'')+'" data-id="'+esc(it.id)+'" style="background:'+bgFila+'">'
+    html += '<div class="news-row'+(isOpen?' open':'')+(it.esNueva?' nueva':'')+'" data-id="'+esc(it.id)+'" style="background:'+resto+'">'
+      + '<div class="franja'+(animarFranjas?' anim':'')+'" style="width:'+corte+'%;background:'+barra+';--w:'+corte+'%"></div>'
       + '<div class="news-row-main">'
       + '<span class="rank'+(hot?' hot':'')+'">'+(i+1)+'</span>'
       + '<div style="flex:1">'
@@ -488,6 +504,7 @@ function render(){
     html += '<button id="load-more" class="load-more">Cargar más ↓</button>';
   }
   list.innerHTML = html;
+  animarFranjas = false; // ya se animó (si correspondía); los renders de reloj no animan
 
   var rows = list.querySelectorAll(".news-row");
   for(var k=0;k<rows.length;k++){
