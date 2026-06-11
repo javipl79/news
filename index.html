@@ -251,7 +251,7 @@ display: flex; align-items: center; justify-content: center; cursor: pointer; li
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.2</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.3</span></span>
     </div>
     <div class="updated" id="updated"><span class="env-sub" id="updated-sub"></span></div>
   </header>
@@ -449,20 +449,21 @@ function render(){
     if(isOpen){
       panel = panelHtml(it);
     }
-    // 4 tonos: barra de vejez (corte limpio) + resto, alternados por renglón (cebra marcada).
+    // 4 tonos: barra de vejez (corte limpio) + resto, alternados por renglón (cebra).
     var fresc = frescura(it);
     var barra, resto;
     if(fMulti){
-      // Modo caliente: 4 tonos de rojo oscuro, cebra marcada.
-      if(i % 2 === 0){ barra = "#2e1409"; resto = "#0f0704"; }
-      else           { barra = "#3d1c0c"; resto = "#1c0e07"; }
+      // Modo caliente: rojos muy oscuros.
+      if(i % 2 === 0){ barra = "#1c0c06"; resto = "#0a0503"; }
+      else           { barra = "#250f07"; resto = "#120804"; }
     } else {
-      // Normal: 4 tonos de gris oscuro, con buena diferencia entre renglón par e impar.
-      if(i % 2 === 0){ barra = "#1c1c1c"; resto = "#050505"; } // renglón par (más oscuro)
-      else           { barra = "#2a2a2a"; resto = "#121212"; } // renglón impar (más claro)
+      // Normal: grises muy oscuros (apenas perceptibles, no compiten con el texto).
+      if(i % 2 === 0){ barra = "#141414"; resto = "#040404"; } // renglón par
+      else           { barra = "#1a1a1a"; resto = "#0c0c0c"; } // renglón impar
     }
-    // Corte limpio: la barra (claro) hasta fresc%, y de golpe el resto (oscuro). Sin desvanecido.
-    var corte = Math.max(0, Math.min(100, fresc));
+    // Corte limpio: barra hasta fresc%, después el resto. Tope 98% para que no quede
+    // la línea fina clara pegada al borde derecho cuando la frescura es ~100%.
+    var corte = Math.max(0, Math.min(98, fresc));
     var bgFila = "linear-gradient(to right, "+barra+" 0%, "+barra+" "+corte+"%, "+resto+" "+corte+"%, "+resto+" 100%)";
     html += '<div class="news-row'+(isOpen?' open':'')+(it.esNueva?' nueva':'')+'" data-id="'+esc(it.id)+'" style="background:'+bgFila+'">'
       + '<div class="news-row-main">'
