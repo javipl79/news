@@ -58,7 +58,7 @@ select { flex: 0 0 auto; min-width: 110px; background: #0f1714; border: 1px soli
 .list { }
 .empty { padding: 30px; color: #5a6b64; font-size: 15px; text-align: center; }
 
-.news-row { position: relative; background: #0d0d0d; border: 1px solid transparent; color: #d8e6e0; transition: background .6s ease; }
+.news-row { position: relative; background: #0a0a0a; border: 1px solid transparent; border-radius: 8px; color: #d8e6e0; margin: 6px 10px; transition: background .6s ease; }
 /* Entrada de noticias nuevas: aparecen con un destello verde que se desvanece */
 .news-row.nueva { animation: entra-nueva .9s ease both; }
 @keyframes entra-nueva {
@@ -73,7 +73,6 @@ select { flex: 0 0 auto; min-width: 110px; background: #0f1714; border: 1px soli
 100% { box-shadow: inset 0 0 0 9999px rgba(255,107,53,0); }
 }
 @media (prefers-reduced-motion: reduce) { .news-row.nueva { animation: none; } }
-.news-row.alt { background: #1a1a1a; }
 .news-row-main { display: flex; align-items: flex-start; gap: 12px; padding: 12px 18px; cursor: pointer; -webkit-user-select: none; user-select: none; }
 .news-row.open { border-color: #00ff0055; }
 .news-row.open .news-row-main { padding-bottom: 14px; }
@@ -252,7 +251,7 @@ display: flex; align-items: center; justify-content: center; cursor: pointer; li
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v8.7</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v8.8</span></span>
     </div>
     <div class="updated" id="updated"><span class="env-sub" id="updated-sub"></span></div>
   </header>
@@ -450,17 +449,17 @@ function render(){
     if(isOpen){
       panel = panelHtml(it);
     }
-    // Fondo según frescura: fresca = claramente más iluminada, vieja = hundida (casi negra).
+    // El fondo es una BARRA que llena de izquierda a derecha según la frescura.
+    // Fresca = casi todo el ancho coloreado; vieja = solo un pedazo a la izquierda.
     var fresc = frescura(it);
-    var bgFila;
+    var col, base = "#0a0a0a";
     if(fMulti){
-      // Modo caliente: tonos brasa (rojizos), fresca más intensa.
-      var lr = 24 + Math.round((fresc/100) * 36); // rojo 24→60
-      bgFila = "rgb("+lr+","+Math.round(lr*0.45)+","+Math.round(lr*0.25)+")";
+      col = "rgba(255,107,53,0.22)"; // brasa en modo caliente
     } else {
-      var lum = 10 + Math.round((fresc/100) * 24); // 10 (vieja) → 34 (fresca): contraste marcado
-      bgFila = "rgb("+lum+","+lum+","+lum+")";
+      col = "rgba(0,255,0,0.13)";    // verde sutil normal
     }
+    // El color llega hasta fresc%, después corta al fondo base. Borde suave en la transición.
+    var bgFila = "linear-gradient(to right, "+col+" 0%, "+col+" "+Math.max(0,fresc-8)+"%, "+base+" "+fresc+"%, "+base+" 100%)";
     html += '<div class="news-row'+(isOpen?' open':'')+(it.esNueva?' nueva':'')+'" data-id="'+esc(it.id)+'" style="background:'+bgFila+'">'
       + '<div class="news-row-main">'
       + '<span class="rank'+(hot?' hot':'')+'">'+(i+1)+'</span>'
