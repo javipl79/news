@@ -61,20 +61,20 @@ select { flex: 0 0 auto; min-width: 110px; background: #0f1714; border: 1px soli
 .news-row { position: relative; background: #0a0a0a; border: 1px solid transparent; border-radius: 8px; overflow: hidden; color: #d8e6e0; margin: 6px 10px; transition: background .6s ease; }
 /* Franja de vejez: capa sólida a la izquierda (sin gradiente). Su ancho = frescura. */
 .franja { position: absolute; top: 0; left: 0; bottom: 0; z-index: 0; }
-.franja.anim { animation: franja-carga .8s cubic-bezier(.22,.61,.36,1) both; }
+.franja.anim { animation: franja-carga 1.1s cubic-bezier(.22,.61,.36,1) both; }
 @keyframes franja-carga { from { width: 0 !important; } to { width: var(–w); } }
 /* El contenido va por encima de la franja */
 .news-row-main, .news-panel { position: relative; z-index: 1; }
 @media (prefers-reduced-motion: reduce) { .franja.anim { animation: none; } }
 /* Escalonado: cada franja entra un poco después que la de arriba */
 .news-row:nth-child(1) .franja.anim { animation-delay: 0s; }
-.news-row:nth-child(2) .franja.anim { animation-delay: .05s; }
-.news-row:nth-child(3) .franja.anim { animation-delay: .10s; }
-.news-row:nth-child(4) .franja.anim { animation-delay: .15s; }
-.news-row:nth-child(5) .franja.anim { animation-delay: .20s; }
-.news-row:nth-child(6) .franja.anim { animation-delay: .25s; }
-.news-row:nth-child(7) .franja.anim { animation-delay: .30s; }
-.news-row:nth-child(8) .franja.anim { animation-delay: .35s; }
+.news-row:nth-child(2) .franja.anim { animation-delay: .09s; }
+.news-row:nth-child(3) .franja.anim { animation-delay: .18s; }
+.news-row:nth-child(4) .franja.anim { animation-delay: .27s; }
+.news-row:nth-child(5) .franja.anim { animation-delay: .36s; }
+.news-row:nth-child(6) .franja.anim { animation-delay: .45s; }
+.news-row:nth-child(7) .franja.anim { animation-delay: .54s; }
+.news-row:nth-child(8) .franja.anim { animation-delay: .63s; }
 /* Entrada de noticias nuevas: aparecen con un destello verde que se desvanece */
 .news-row.nueva { animation: entra-nueva .9s ease both; }
 @keyframes entra-nueva {
@@ -267,7 +267,7 @@ display: flex; align-items: center; justify-content: center; cursor: pointer; li
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.4</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.5</span></span>
     </div>
     <div class="updated" id="updated"><span class="env-sub" id="updated-sub"></span></div>
   </header>
@@ -473,11 +473,13 @@ function render(){
     var fresc = frescura(it);
     var barra, resto;
     if(fMulti){
-      if(i % 2 === 0){ barra = "#1c0c06"; resto = "#0a0503"; }
-      else           { barra = "#250f07"; resto = "#120804"; }
+      // Modo caliente: una fila rojiza, la otra naranja oscuro (más diferencia entre filas).
+      if(i % 2 === 0){ barra = "#3a1208"; resto = "#1a0804"; } // rojizo
+      else           { barra = "#3d2008"; resto = "#1c1003"; } // naranja oscuro
     } else {
-      if(i % 2 === 0){ barra = "#141414"; resto = "#040404"; } // renglón par
-      else           { barra = "#1a1a1a"; resto = "#0c0c0c"; } // renglón impar
+      // Normal: una fila bien oscura, la otra claramente más clara (más diferencia).
+      if(i % 2 === 0){ barra = "#101010"; resto = "#030303"; } // fila oscura
+      else           { barra = "#222222"; resto = "#0e0e0e"; } // fila más clara
     }
     var corte = Math.max(0, Math.min(98, fresc));
     html += '<div class="news-row'+(isOpen?' open':'')+(it.esNueva?' nueva':'')+'" data-id="'+esc(it.id)+'" style="background:'+resto+'">'
