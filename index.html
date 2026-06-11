@@ -3,7 +3,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>Pulso · Archivo Cripto</title>
 <!-- PWA: permite instalar Pulso en el teléfono -->
 <link rel="manifest" href="manifest.json" />
@@ -41,6 +41,8 @@ header { display: flex; justify-content: space-between; align-items: center; pad
 
 .updated { font-size: 12px; color: #5a6b64; display: flex; align-items: center; gap: 10px; }
 .env-sub { color: #9bb5ac; font-size: 13px; }
+.btn-refrescar { background: transparent; border: 1px solid #1f2d28; color: #9bb5ac; width: 30px; height: 30px; border-radius: 50%; font-size: 16px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; line-height: 1; padding: 0; transition: transform .4s ease, color .2s, border-color .2s; }
+.btn-refrescar:active { transform: rotate(360deg); color: #00ff00; border-color: #00ff00; }
 
 .toolbar { display: flex; gap: 10px; padding: 12px 20px; align-items: center; border-bottom: 1px solid #16221d; flex-wrap: wrap; justify-content: flex-start; }
 .search { flex: 0 1 320px; min-width: 180px; background: #0f1714; border: 1px solid #1f2d28; color: #d8e6e0; padding: 8px 12px; border-radius: 6px; font-family: inherit; font-size: 15px; outline: none; }
@@ -267,9 +269,9 @@ display: flex; align-items: center; justify-content: center; cursor: pointer; li
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.12</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.13</span></span>
     </div>
-    <div class="updated" id="updated"><span class="env-sub" id="updated-sub"></span></div>
+    <div class="updated" id="updated"><span class="env-sub" id="updated-sub"></span><button id="btn-refrescar" class="btn-refrescar" aria-label="Refrescar" title="Refrescar">⟳</button></div>
   </header>
   <div class="toolbar">
     <input id="search" class="search" placeholder="Buscar en titulares…">
@@ -597,6 +599,15 @@ document.getElementById("f-multi").addEventListener("click", function(){
   visibleCount=30; render();
 });
 
+// Botón refrescar: recarga las noticias y busca si hay versión nueva de la app.
+document.getElementById("btn-refrescar").addEventListener("click", function(){
+  animarFranjas = true;
+  loadNews();
+  if("serviceWorker" in navigator){
+    navigator.serviceWorker.getRegistration().then(function(reg){ if(reg) reg.update(); });
+  }
+});
+
 // En mobile arrancamos con bastantes noticias. Con pocas, al desplegar una el
 // contenedor queda justo en el límite de su altura y iOS traba el scroll.
 // Con contenido de sobra, el scroll siempre funciona bien.
@@ -610,7 +621,28 @@ loadNews();
 // Registrar el service worker (habilita instalar Pulso como app)
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function(){
-    navigator.serviceWorker.register("sw.js").catch(function(){});
+    navigator.serviceWorker.register("sw.js").then(function(reg){
+      // Buscar actualización al abrir
+      reg.update();
+      // Si aparece un SW nuevo, cuando esté listo recargamos para mostrar la versión fresca.
+      reg.addEventListener("updatefound", function(){
+        var nuevo = reg.installing;
+        if(!nuevo) return;
+        nuevo.addEventListener("statechange", function(){
+          if(nuevo.state === "installed" && navigator.serviceWorker.controller){
+            // Hay una versión nueva lista → activarla y recargar una vez.
+            nuevo.postMessage && nuevo.postMessage("skip-waiting");
+            window.location.reload();
+          }
+        });
+      });
+    }).catch(function(){});
+    // Al volver a la app (cambiar de pestaña/volver), chequear actualización.
+    document.addEventListener("visibilitychange", function(){
+      if(!document.hidden){
+        navigator.serviceWorker.getRegistration().then(function(reg){ if(reg) reg.update(); });
+      }
+    });
   });
 }
 
