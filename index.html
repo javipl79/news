@@ -251,7 +251,7 @@ display: flex; align-items: center; justify-content: center; cursor: pointer; li
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v8.8</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v8.9</span></span>
     </div>
     <div class="updated" id="updated"><span class="env-sub" id="updated-sub"></span></div>
   </header>
@@ -449,17 +449,16 @@ function render(){
     if(isOpen){
       panel = panelHtml(it);
     }
-    // El fondo es una BARRA que llena de izquierda a derecha según la frescura.
-    // Fresca = casi todo el ancho coloreado; vieja = solo un pedazo a la izquierda.
-    var fresc = frescura(it);
-    var col, base = "#0a0a0a";
+    // Cebra: filas alternadas en dos tonos para separar visualmente una noticia de otra.
+    var fresc = frescura(it); // (se sigue usando para el orden, no para el fondo)
+    var bgFila;
     if(fMulti){
-      col = "rgba(255,107,53,0.22)"; // brasa en modo caliente
+      // Modo caliente: dos tonos de rojo alternados.
+      bgFila = (i % 2 === 0) ? "#1a0d08" : "#241109";
     } else {
-      col = "rgba(0,255,0,0.13)";    // verde sutil normal
+      // Normal: dos tonos de gris alternados.
+      bgFila = (i % 2 === 0) ? "#0d0d0d" : "#141414";
     }
-    // El color llega hasta fresc%, después corta al fondo base. Borde suave en la transición.
-    var bgFila = "linear-gradient(to right, "+col+" 0%, "+col+" "+Math.max(0,fresc-8)+"%, "+base+" "+fresc+"%, "+base+" 100%)";
     html += '<div class="news-row'+(isOpen?' open':'')+(it.esNueva?' nueva':'')+'" data-id="'+esc(it.id)+'" style="background:'+bgFila+'">'
       + '<div class="news-row-main">'
       + '<span class="rank'+(hot?' hot':'')+'">'+(i+1)+'</span>'
