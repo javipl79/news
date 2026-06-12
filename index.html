@@ -47,7 +47,8 @@
 .prox-der { font-size: 10.5px; color: #00ff0099; }
 .prox-svg { display: block; width: 100%; height: 28px; }
 .prox-base { fill: none; stroke: #1c2b25; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-.prox-live { fill: none; stroke: #00ff00; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 3px #00ff00aa); transition: stroke-dashoffset 1s linear; }
+.prox-live { fill: none; stroke: #00ff00; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 3px #00ff00aa); }
+#prox-clip-rect { transition: width 1s linear; }
 .prox-pulso.por-actualizar .prox-live { animation: prox-pulsa 1.1s ease-in-out infinite; }
 @keyframes prox-pulsa { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
 /* Botón refrescar (ahora dentro de la franja, más chico) */
@@ -302,7 +303,7 @@
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.40</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.41</span></span>
     </div>
   </header>
   <div class="prox-pulso" id="prox-pulso">
@@ -314,8 +315,9 @@
       <span class="prox-der" id="prox-label">Próximo pulso en —</span>
     </div>
     <svg class="prox-svg" viewBox="0 0 1200 40" preserveAspectRatio="none" aria-hidden="true">
+      <defs><clipPath id="prox-clip"><rect id="prox-clip-rect" x="0" y="0" width="0" height="40"/></clipPath></defs>
       <path class="prox-base" vector-effect="non-scaling-stroke" d="M0 20 H70 l8 -11 l8 22 l8 -11 H180 l6 -14 l8 28 l6 -14 H330 l8 -11 l8 22 l8 -11 H440 l6 -14 l8 28 l6 -14 H590 l8 -11 l8 22 l8 -11 H700 l6 -14 l8 28 l6 -14 H850 l8 -11 l8 22 l8 -11 H960 l6 -14 l8 28 l6 -14 H1090 l10 -18 l10 36 l10 -18 H1200"/>
-      <path class="prox-live" id="prox-live" vector-effect="non-scaling-stroke" d="M0 20 H70 l8 -11 l8 22 l8 -11 H180 l6 -14 l8 28 l6 -14 H330 l8 -11 l8 22 l8 -11 H440 l6 -14 l8 28 l6 -14 H590 l8 -11 l8 22 l8 -11 H700 l6 -14 l8 28 l6 -14 H850 l8 -11 l8 22 l8 -11 H960 l6 -14 l8 28 l6 -14 H1090 l10 -18 l10 36 l10 -18 H1200"/>
+      <path class="prox-live" id="prox-live" clip-path="url(#prox-clip)" vector-effect="non-scaling-stroke" d="M0 20 H70 l8 -11 l8 22 l8 -11 H180 l6 -14 l8 28 l6 -14 H330 l8 -11 l8 22 l8 -11 H440 l6 -14 l8 28 l6 -14 H590 l8 -11 l8 22 l8 -11 H700 l6 -14 l8 28 l6 -14 H850 l8 -11 l8 22 l8 -11 H960 l6 -14 l8 28 l6 -14 H1090 l10 -18 l10 36 l10 -18 H1200"/>
     </svg>
   </div>
   <div class="toolbar">
@@ -433,25 +435,19 @@ function esCaliente(it){
 function clip(t,n){ n=n||160; t=t||""; return t.length>n ? t.slice(0,n).trim()+"…" : t; }
 function esc(s){ var d=document.createElement("div"); d.textContent=s||""; return d.innerHTML; }
 
-// Ilumina la línea de electro hacia la bandera según cuánto falta para la próxima
-// corrida del motor (cada 1h), y muestra la cuenta regresiva "Próximo pulso en: Xm".
-var _proxLen = 0;
+// Ilumina la línea de electro hacia el final según cuánto falta para la próxima
+// corrida del motor (cada 1h), y muestra los tiempos en las dos puntas.
 function actualizarBarraProxima(){
   var live = document.getElementById("prox-live");
   var label = document.getElementById("prox-label");
   var cont = document.getElementById("prox-pulso");
+  var clip = document.getElementById("prox-clip-rect");
   if(!live || !label || !ultimaActualizacion) return;
-
-  // Largo total del trazo (se mide una vez)
-  if(!_proxLen){
-    try { _proxLen = live.getTotalLength(); } catch(e){ _proxLen = 360; }
-    live.style.strokeDasharray = _proxLen;
-  }
 
   var transcurrido = Date.now() - ultimaActualizacion;
   var prog = Math.max(0, Math.min(1, transcurrido / INTERVALO_MOTOR_MS));
-  // El trazo se va "dibujando": offset va de _proxLen (oculto) a 0 (completo)
-  live.style.strokeDashoffset = _proxLen * (1 - prog);
+  // El verde se revela de izquierda a derecha moviendo el ancho del clip (0 → 1200).
+  if(clip) clip.setAttribute("width", Math.round(1200 * prog));
 
   // Punta izquierda: "Actualizado hace X"
   var actEl = document.getElementById("prox-actualizado");
