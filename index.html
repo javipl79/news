@@ -147,6 +147,10 @@
   .hot-mode .news-puntos li::before { color: #ff6b35; }
   .news-orig { font-size: 13px; line-height: 1.5; color: #6b7d76; margin: 0 0 22px 0; font-style: italic; }
   .read-btn { display: inline-flex; align-items: center; background: #0d1f18; border: 1px solid #00ff00; color: #00ff00; padding: 11px 18px; border-radius: 6px; font-family: inherit; font-size: 14px; text-decoration: none; }
+  .news-panel-botones { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .stream-btn { display: inline-flex; align-items: center; gap: 6px; background: #1a1208; border: 1px solid #e5a000; color: #e5a000; padding: 11px 18px; border-radius: 6px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .2s, box-shadow .2s; }
+  .stream-btn:hover { background: #2a1d0c; box-shadow: 0 0 10px #e5a00033; }
+  .stream-btn.agregada { background: #0d1f18; border-color: #00ff00; color: #00ff00; }
   /* Botón leer en modo caliente: colores de fuego */
   .read-btn.hot { background: #1f0f08; border-color: #ff6b35; color: #ff6b35; }
   @keyframes slidein { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
@@ -303,7 +307,7 @@
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.42</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.44</span></span>
     </div>
   </header>
   <div class="prox-pulso" id="prox-pulso">
@@ -367,6 +371,14 @@ var NEWS_URL = "https://noticias.archivocripto.app/news-data";
 var COINS = ["BTC","ETH","SOL","XRP","HYPE","BNB","DOGE","ADA","AVAX","LINK"];
 
 var items = [];
+// Modo stream: solo se activa si Pulso se abre con la clave secreta en la URL
+// (?stream=CLAVE). Lo usa el News Desk local de Javi para seleccionar noticias.
+// El Pulso público normal NO lo activa nunca. Cambiá la clave por la que quieras.
+var STREAM_KEY = "hookstream2026";
+var modoStream = (function(){
+  try { return new URLSearchParams(location.search).get("stream") === STREAM_KEY; }
+  catch(e){ return false; }
+})();
 var fearGreed = null;   // { valor, clasificacion } del Fear & Greed Index
 var ultimaActualizacion = null;   // timestamp de la última corrida del motor
 var INTERVALO_MOTOR_MS = 1 * 60 * 60 * 1000;   // el motor corre cada 1h
@@ -708,7 +720,7 @@ function render(){
   }
   // Botón Archivo: todo lo que no entró en la portada (se enfrió) queda acá detrás.
   if(!verArchivo && archivadas.length > 0){
-    html += '<button id="ver-archivo" class="load-more">📁 Archivo · '+archivadas.length+' noticias anteriores</button>';
+    html += '<button id="ver-archivo" class="load-more">📁 Archivo</button>';
   }
   list.innerHTML = html;
   animarFranjas = false; // ya se animó (si correspondía); los renders de reloj no animan
@@ -734,6 +746,29 @@ function render(){
   if(archBtn){
     archBtn.addEventListener("click", function(){ verArchivo = true; render(); });
   }
+  // Botón "Stream" (solo en modo stream): manda la noticia al News Desk que embebe Pulso.
+  if(modoStream){
+    list.querySelectorAll(".stream-btn").forEach(function(b){
+      b.addEventListener("click", function(e){
+        e.stopPropagation();
+        var id = this.getAttribute("data-stream-id");
+        var it = items.find(function(x){ return x.id === id; });
+        if(!it) return;
+        // Mando los datos ya procesados del motor al News Desk (ventana padre)
+        try {
+          parent.postMessage({ tipo: "pulso-stream", noticia: {
+            id: it.id, source: it.source, title: it.titulo_es || it.title,
+            titleOrig: it.title, url: it.url, ts: it.ts, coins: it.coins || [],
+            resumen: it.resumen || "", bullets: it.puntos || [],
+            sentimiento: it.sentimiento || "", tema: it.tema || ""
+          }}, "*");
+        } catch(err){}
+        // Feedback visual: el botón pasa a "agregada"
+        this.classList.add("agregada");
+        this.textContent = "✓ Agregada";
+      });
+    });
+  }
 }
 
 // Arma el HTML del panel desplegable de una noticia.
@@ -750,11 +785,18 @@ function panelHtml(it){
   // En modo caliente, el botón leer usa colores de fuego y la flecha caliente.
   var flechaBtn = fMulti ? "ico-flecha-caliente.png" : "ico-flecha.png";
   var btnClase = fMulti ? "read-btn hot" : "read-btn";
+  // Botón "stream": solo en modo stream (News Desk local de Javi), nunca en el Pulso público.
+  var streamBtn = modoStream
+    ? '<button class="stream-btn" data-stream-id="'+esc(it.id)+'">➕ Stream</button>'
+    : '';
   return '<div class="news-panel">'
     + puntosHtml
     + resumenHtml
     + origHtml
+    + '<div class="news-panel-botones">'
     + (it.url ? '<a class="'+btnClase+'" href="'+esc(it.url)+'" target="_blank" rel="noopener noreferrer">Leer en '+esc(it.source)+' <img class="ico-go-sm" src="'+flechaBtn+'" alt=""></a>' : '')
+    + streamBtn
+    + '</div>'
     + '</div>';
 }
 
