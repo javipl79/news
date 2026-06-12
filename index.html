@@ -307,7 +307,7 @@
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.45</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.46</span></span>
     </div>
   </header>
   <div class="prox-pulso" id="prox-pulso">
@@ -746,30 +746,8 @@ function render(){
   if(archBtn){
     archBtn.addEventListener("click", function(){ verArchivo = true; render(); });
   }
-  // Botón "Stream" (solo en modo stream): manda la noticia al News Desk que embebe Pulso.
-  if(modoStream){
-    list.querySelectorAll(".stream-btn").forEach(function(b){
-      b.addEventListener("click", function(e){
-        e.stopPropagation();
-        var id = this.getAttribute("data-stream-id");
-        var it = items.find(function(x){ return x.id === id; });
-        if(!it) return;
-        // Mando los datos ya procesados del motor al News Desk (ventana padre)
-        try {
-          console.log("[Pulso] enviando al News Desk:", it.titulo_es || it.title);  // diagnóstico
-          parent.postMessage({ tipo: "pulso-stream", noticia: {
-            id: it.id, source: it.source, title: it.titulo_es || it.title,
-            titleOrig: it.title, url: it.url, ts: it.ts, coins: it.coins || [],
-            resumen: it.resumen || "", bullets: it.puntos || [],
-            sentimiento: it.sentimiento || "", tema: it.tema || ""
-          }}, "*");
-        } catch(err){}
-        // Feedback visual: el botón pasa a "agregada"
-        this.classList.add("agregada");
-        this.textContent = "✓ Agregada";
-      });
-    });
-  }
+  // El botón "Stream" del panel se conecta al desplegar la noticia (ver toggleRow),
+  // porque el panel se genera dinámicamente y no existe en este render general.
 }
 
 // Arma el HTML del panel desplegable de una noticia.
@@ -826,7 +804,29 @@ function toggleRow(id){
     row.classList.add("open");
     if(icon) icon.innerHTML = "▾";
     var it = items.find(function(x){ return x.id === id; });
-    if(it){ row.insertAdjacentHTML("beforeend", panelHtml(it)); }
+    if(it){
+      row.insertAdjacentHTML("beforeend", panelHtml(it));
+      // Conectar el botón Stream del panel recién insertado (solo en modo stream)
+      if(modoStream){
+        var sb = row.querySelector(".stream-btn");
+        if(sb){
+          sb.addEventListener("click", function(e){
+            e.stopPropagation();
+            try {
+              console.log("[Pulso] enviando al News Desk:", it.titulo_es || it.title);
+              parent.postMessage({ tipo: "pulso-stream", noticia: {
+                id: it.id, source: it.source, title: it.titulo_es || it.title,
+                titleOrig: it.title, url: it.url, ts: it.ts, coins: it.coins || [],
+                resumen: it.resumen || "", bullets: it.puntos || [],
+                sentimiento: it.sentimiento || "", tema: it.tema || ""
+              }}, "*");
+            } catch(err){ console.log("[Pulso] error al enviar:", err); }
+            sb.classList.add("agregada");
+            sb.textContent = "✓ Agregada";
+          });
+        }
+      }
+    }
   } else {
     expandedId = null;
     row.classList.remove("open");
