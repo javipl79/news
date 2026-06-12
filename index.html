@@ -307,7 +307,7 @@
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.44</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.45</span></span>
     </div>
   </header>
   <div class="prox-pulso" id="prox-pulso">
@@ -756,6 +756,7 @@ function render(){
         if(!it) return;
         // Mando los datos ya procesados del motor al News Desk (ventana padre)
         try {
+          console.log("[Pulso] enviando al News Desk:", it.titulo_es || it.title);  // diagnóstico
           parent.postMessage({ tipo: "pulso-stream", noticia: {
             id: it.id, source: it.source, title: it.titulo_es || it.title,
             titleOrig: it.title, url: it.url, ts: it.ts, coins: it.coins || [],
