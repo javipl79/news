@@ -21,7 +21,7 @@
      y scrollea por dentro. Sin -webkit-overflow-scrolling: touch porque en iOS
      congela el scroll cuando el contenido cambia de alto (al desplegar una noticia). */
   /* Altura de la caja del iframe (Wix, ~700px). El #app scrollea por dentro.
-     Colchón inferior generoso para que el botón "Cargar más" quede con aire y se vea
+     Colchón inferior generoso para que el botón "Archivo" quede con aire y se vea
      completo al scrollear hasta el final (sin quedar pegado al borde). */
   #app { height: 100%; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 160px; }
   #list { }
@@ -303,7 +303,7 @@
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.41</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.42</span></span>
     </div>
   </header>
   <div class="prox-pulso" id="prox-pulso">
@@ -644,8 +644,8 @@ function render(){
     else frescas.push(it);
   });
   // Lo que se muestra: las frescas, y si tocaron "Archivo", también las archivadas debajo.
-  var visibles = verArchivo ? frescas.concat(archivadas) : frescas;
-  var arr = visibles.slice(0, visibleCount);
+  // Sin paginación: todo lo fresco se ve; lo viejo va detrás del botón Archivo.
+  var arr = verArchivo ? frescas.concat(archivadas) : frescas;
 
   if(arr.length===0){
     // Aún sin noticias, mostramos la barra de indicadores arriba (Fear & Greed sigue siendo útil).
@@ -706,11 +706,8 @@ function render(){
       + panel
       + '</div>';
   }
-  // Botón inferior: si hay más visibles que el tope, pagina ("Cargar más").
-  // Si ya se ven todas las frescas y hay archivadas ocultas, ofrece "Archivo".
-  if(visibles.length > visibleCount){
-    html += '<button id="load-more" class="load-more">Cargar más ↓</button>';
-  } else if(!verArchivo && archivadas.length > 0){
+  // Botón Archivo: todo lo que no entró en la portada (se enfrió) queda acá detrás.
+  if(!verArchivo && archivadas.length > 0){
     html += '<button id="ver-archivo" class="load-more">📁 Archivo · '+archivadas.length+' noticias anteriores</button>';
   }
   list.innerHTML = html;
@@ -733,10 +730,6 @@ function render(){
       render();
     });
   });
-  var moreBtn = document.getElementById("load-more");
-  if(moreBtn){
-    moreBtn.addEventListener("click", function(){ visibleCount += 20; render(); });
-  }
   var archBtn = document.getElementById("ver-archivo");
   if(archBtn){
     archBtn.addEventListener("click", function(){ verArchivo = true; render(); });
