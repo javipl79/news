@@ -151,6 +151,9 @@
   .stream-btn { display: inline-flex; align-items: center; gap: 6px; background: #1a1208; border: 1px solid #e5a000; color: #e5a000; padding: 11px 18px; border-radius: 6px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .2s, box-shadow .2s; }
   .stream-btn:hover { background: #2a1d0c; box-shadow: 0 0 10px #e5a00033; }
   .stream-btn.agregada { background: #0d1f18; border-color: #00ff00; color: #00ff00; }
+  .caliente-btn { display: inline-flex; align-items: center; gap: 6px; background: #1f0f08; border: 1px solid #ff6b35; color: #ff6b35; padding: 11px 18px; border-radius: 6px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .2s, box-shadow .2s; }
+  .caliente-btn:hover { background: #2e160b; box-shadow: 0 0 10px #ff6b3533; }
+  .caliente-btn.activa { background: #ff6b35; border-color: #ff6b35; color: #0a0a0a; }
   /* Botón leer en modo caliente: colores de fuego */
   .read-btn.hot { background: #1f0f08; border-color: #ff6b35; color: #ff6b35; }
   @keyframes slidein { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
@@ -307,7 +310,7 @@
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.46</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.47</span></span>
     </div>
   </header>
   <div class="prox-pulso" id="prox-pulso">
@@ -439,6 +442,12 @@ function recalcularCalientes(){
   candidatas.sort(function(a,b){ return b.urgencia - a.urgencia; });
   _setCalientes = {};
   candidatas.slice(0, MAX_CALIENTES).forEach(function(it){ _setCalientes[it.id] = true; });
+  // Calientes "a mano" (marcadas por Javi desde el News Desk, campo calienteManual
+  // que pone el motor). SIEMPRE entran mientras la noticia siga fresca (>20%), sin
+  // importar score/urgencia ni el tope de automáticas: es una decisión manual y manda.
+  items.forEach(function(it){
+    if(it.calienteManual && frescura(it) > 20) _setCalientes[it.id] = true;
+  });
 }
 function esCaliente(it){
   if(_setCalientes === null) recalcularCalientes();
@@ -768,6 +777,11 @@ function panelHtml(it){
   var streamBtn = modoStream
     ? '<button class="stream-btn" data-stream-id="'+esc(it.id)+'">➕ Stream</button>'
     : '';
+  // Botón "caliente a mano": solo en modo stream. Refleja el estado actual (calienteManual).
+  var calienteBtn = modoStream
+    ? '<button class="caliente-btn'+(it.calienteManual?' activa':'')+'" data-caliente-id="'+esc(it.id)+'">'
+      + (it.calienteManual ? '🔥 Quitar caliente' : '🔥 Caliente') + '</button>'
+    : '';
   return '<div class="news-panel">'
     + puntosHtml
     + resumenHtml
@@ -775,6 +789,7 @@ function panelHtml(it){
     + '<div class="news-panel-botones">'
     + (it.url ? '<a class="'+btnClase+'" href="'+esc(it.url)+'" target="_blank" rel="noopener noreferrer">Leer en '+esc(it.source)+' <img class="ico-go-sm" src="'+flechaBtn+'" alt=""></a>' : '')
     + streamBtn
+    + calienteBtn
     + '</div>'
     + '</div>';
 }
@@ -823,6 +838,22 @@ function toggleRow(id){
             } catch(err){ console.log("[Pulso] error al enviar:", err); }
             sb.classList.add("agregada");
             sb.textContent = "✓ Agregada";
+          });
+        }
+        // Botón "🔥 Caliente": le avisa al News Desk que togglee esta noticia como
+        // caliente a mano. El News Desk se encarga de hablar con el motor (login + marcar).
+        var cb = row.querySelector(".caliente-btn");
+        if(cb){
+          cb.addEventListener("click", function(e){
+            e.stopPropagation();
+            try {
+              console.log("[Pulso] marcar caliente a mano:", it.titulo_es || it.title);
+              parent.postMessage({ tipo: "pulso-caliente", id: it.id }, "*");
+            } catch(err){ console.log("[Pulso] error al marcar caliente:", err); }
+            // Feedback visual optimista. El estado real lo confirma el próximo
+            // refresco del JSON del motor (que ya trae calienteManual).
+            var activa = cb.classList.toggle("activa");
+            cb.textContent = activa ? "🔥 Quitar caliente" : "🔥 Caliente";
           });
         }
       }
