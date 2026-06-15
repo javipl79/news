@@ -313,7 +313,7 @@
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.49</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.50</span></span>
     </div>
   </header>
   <div class="prox-pulso" id="prox-pulso">
@@ -393,6 +393,7 @@ var expandedId = null;
 var visibleCount = 30;
 var verArchivo = false;     // cuando es true, también se muestran las noticias archivadas (barra ≤20%)
 var UMBRAL_ARCHIVO = 20;    // noticias con frescura ≤ esto quedan detrás de "Archivo"
+var UMBRAL_MOSTRAR = 10;    // noticias con score < esto se OCULTAN del feed (basura ajena a cripto: salud, fitness, etc.). Excepción: si Javi la marca caliente a mano, se muestra igual.
 var pollTimer = null;
 var animarFranjas = true; // anima las franjas solo al cargar/cambiar noticias, no en el refresco de reloj
 
@@ -633,6 +634,7 @@ function render(){
   list.classList.toggle("hot-mode", fMulti);
   var arrFull = items.filter(function(it){
     if(!it.procesada) return false;  // sin traducir todavía (quedó en inglés): la ocultamos hasta que la IA la procese
+    if((it.score || 0) < UMBRAL_MOSTRAR && !it.calienteManual) return false;  // basura ajena a cripto (score muy bajo), salvo que esté marcada caliente a mano
     if(q && it.title.toLowerCase().indexOf(q.toLowerCase())<0) return false;
     if(fSource!=="all" && it.source!==fSource) return false;
     if(fCoin!=="all" && it.coins.indexOf(fCoin)<0) return false;
