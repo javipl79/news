@@ -310,7 +310,7 @@
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.47</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.48</span></span>
     </div>
   </header>
   <div class="prox-pulso" id="prox-pulso">
@@ -516,6 +516,7 @@ function loadNews(){
           sentimiento: it.sentimiento || "",  // "bull" | "bear" | "neutral" (lo genera el motor)
           puntos: Array.isArray(it.puntos) ? it.puntos : [],  // 3 key points (lo genera el motor)
           procesada: it.procesada === true || (it.score || 0) > 0,  // pasó por la IA (score>0 cubre las viejas sin el campo)
+          calienteManual: it.calienteManual === true,  // marca "caliente a mano" que pone el motor (faltaba copiarla: por eso no se reflejaba)
           // Es nueva si no estaba antes (y no es la primera carga de la página).
           esNueva: !primeracarga && !idsViejos[it.id]
         };
