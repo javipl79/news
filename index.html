@@ -154,6 +154,9 @@
   .caliente-btn { display: inline-flex; align-items: center; gap: 6px; background: #1f0f08; border: 1px solid #ff6b35; color: #ff6b35; padding: 11px 18px; border-radius: 6px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .2s, box-shadow .2s; }
   .caliente-btn:hover { background: #2e160b; box-shadow: 0 0 10px #ff6b3533; }
   .caliente-btn.activa { background: #ff6b35; border-color: #ff6b35; color: #0a0a0a; }
+  .telegram-btn { display: inline-flex; align-items: center; gap: 6px; background: #0a1a24; border: 1px solid #229ED9; color: #4cb5e8; padding: 11px 18px; border-radius: 6px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .2s, box-shadow .2s; }
+  .telegram-btn:hover { background: #11293a; box-shadow: 0 0 10px #229ED933; }
+  .telegram-btn.enviada { background: #0d1f18; border-color: #00ff00; color: #00ff00; cursor: default; }
   /* Botón leer en modo caliente: colores de fuego */
   .read-btn.hot { background: #1f0f08; border-color: #ff6b35; color: #ff6b35; }
   @keyframes slidein { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
@@ -310,7 +313,7 @@
   <header>
     <div class="brand">
       <img class="logo" src="logo-archivo.png" alt="Archivo Cripto" onerror="this.style.display='none'">
-      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.48</span></span>
+      <span class="live-wrap"><span class="live"><span class="live-dot"></span> <img class="logo-pulso" src="logo-pulso.png" alt="Pulso"></span><span class="version">v9.49</span></span>
     </div>
   </header>
   <div class="prox-pulso" id="prox-pulso">
@@ -783,6 +786,10 @@ function panelHtml(it){
     ? '<button class="caliente-btn'+(it.calienteManual?' activa':'')+'" data-caliente-id="'+esc(it.id)+'">'
       + (it.calienteManual ? '🔥 Quitar caliente' : '🔥 Caliente') + '</button>'
     : '';
+  // Botón "Telegram": solo en modo stream. Manda la noticia al grupo vía el bot.
+  var telegramBtn = modoStream
+    ? '<button class="telegram-btn" data-telegram-id="'+esc(it.id)+'">📤 Telegram</button>'
+    : '';
   return '<div class="news-panel">'
     + puntosHtml
     + resumenHtml
@@ -791,6 +798,7 @@ function panelHtml(it){
     + (it.url ? '<a class="'+btnClase+'" href="'+esc(it.url)+'" target="_blank" rel="noopener noreferrer">Leer en '+esc(it.source)+' <img class="ico-go-sm" src="'+flechaBtn+'" alt=""></a>' : '')
     + streamBtn
     + calienteBtn
+    + telegramBtn
     + '</div>'
     + '</div>';
 }
@@ -855,6 +863,21 @@ function toggleRow(id){
             // refresco del JSON del motor (que ya trae calienteManual).
             var activa = cb.classList.toggle("activa");
             cb.textContent = activa ? "🔥 Quitar caliente" : "🔥 Caliente";
+          });
+        }
+        // Botón "📤 Telegram": le pide al News Desk que mande esta noticia al grupo.
+        // El News Desk habla con el motor (/send), que la deja en la bandeja del bot.
+        var tb = row.querySelector(".telegram-btn");
+        if(tb){
+          tb.addEventListener("click", function(e){
+            e.stopPropagation();
+            if(tb.classList.contains("enviada")) return;  // evitar doble envío
+            try {
+              console.log("[Pulso] enviar a Telegram:", it.titulo_es || it.title);
+              parent.postMessage({ tipo: "pulso-telegram", id: it.id }, "*");
+            } catch(err){ console.log("[Pulso] error al enviar a Telegram:", err); }
+            tb.classList.add("enviada");
+            tb.textContent = "✓ Enviada";
           });
         }
       }
