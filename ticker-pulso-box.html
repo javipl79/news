@@ -7,34 +7,36 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
   :root{
     --moss:     #2bee34;
-    --moss-dim: #1c8f24;
-    --ink:      #eef6f0;
-    --dim2:     #7d8c84;
+    --moss-dim: #1c9e2a;
+    --ink:      #d8e6e0;
+    --dim2:     #9bb5ac;
     --bull:     #2bee34;
-    --bear:     #ff5a4d;
-    --neu:      #8a988f;
-    --panel-a:  #0d110f;
-    --panel-b:  #080b0a;
+    --bear:     #ff4d44;
+    --neu:      #9bb5ac;
+    --panel-a:  #0f1714;
+    --panel-b:  #080c0a;
   }
   *{ box-sizing:border-box; margin:0; padding:0; }
   html,body{ width:100%; height:100%; background:transparent; overflow:hidden;
-    font-family:"Archivo", system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+    font-family:"Barlow Semi Condensed", system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
 
   /* ---------- TARJETA (llena el box del source) ---------- */
   .card{
     position:relative; width:100%; height:100%;
     display:flex; flex-direction:column;
-    padding:3.2% 4% 0 4.6%;
+    /* unidad base = escala con el alto del box (evmux renderiza a mayor resolución y lo encoge) */
+    font-size:clamp(13px, 9vh, 220px);
+    padding:.6em 1.1em .5em 1.3em;
     background:
       radial-gradient(120% 160% at 0% 0%, rgba(43,238,52,.06), transparent 55%),
       linear-gradient(135deg, var(--panel-a), var(--panel-b));
     border:1px solid rgba(43,238,52,.30);
-    border-radius:10px;
+    border-radius:.7em;
     box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 10px 34px rgba(0,0,0,.55),
                 inset 0 0 60px rgba(0,0,0,.35);
     overflow:hidden;
@@ -42,16 +44,16 @@
 
   /* barra de acento vertical (color = sentimiento) */
   .accent{
-    position:absolute; left:0; top:0; bottom:0; width:4px;
+    position:absolute; left:0; top:0; bottom:0; width:.4em;
     background:var(--moss); box-shadow:0 0 14px rgba(43,238,52,.6);
     transition:background .5s ease, box-shadow .5s ease;
   }
 
   /* esquinas tipo HUD */
-  .corner{ position:absolute; width:12px; height:12px; border:1.5px solid rgba(43,238,52,.55); pointer-events:none; }
-  .corner.tr{ top:7px; right:7px; border-left:0; border-bottom:0; }
-  .corner.br{ bottom:7px; right:7px; border-left:0; border-top:0; }
-  .corner.bl{ bottom:7px; left:7px; border-right:0; border-top:0; }
+  .corner{ position:absolute; width:1em; height:1em; border:.12em solid rgba(43,238,52,.55); pointer-events:none; }
+  .corner.tr{ top:.55em; right:.55em; border-left:0; border-bottom:0; }
+  .corner.br{ bottom:.55em; right:.55em; border-left:0; border-top:0; }
+  .corner.bl{ bottom:.55em; left:.55em; border-right:0; border-top:0; }
 
   /* barrido de luz en cada cambio */
   .sweep{ position:absolute; top:0; bottom:0; width:35%; left:-40%; pointer-events:none;
@@ -60,34 +62,32 @@
   @keyframes sweep{ to{ left:120%; } }
 
   /* ---------- HEAD (fijo) ---------- */
-  .head{ display:flex; align-items:center; gap:9px; flex:0 0 auto; }
-  .logo{ height:clamp(13px, 11vh, 22px); width:auto; display:block;
+  .head{ display:flex; align-items:center; gap:.6em; flex:0 0 auto; }
+  .logo{ height:1.7em; width:auto; display:block;
     filter:drop-shadow(0 1px 4px rgba(0,0,0,.55)); }
-  .grow{ flex:1; }
-  .count{ font-family:"Space Mono", monospace; font-size:clamp(10px, 7.5vh, 14px);
-    color:var(--dim2); letter-spacing:.05em; }
 
   /* ---------- STAGE (titular + meta, animado) ---------- */
-  .stage{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; justify-content:center; gap:.5em; }
+  .stage{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; justify-content:center; gap:.55em; }
   .htext{ flex:0 1 auto; min-height:0; display:flex; align-items:center; overflow:hidden; }
   .headline{
-    font-weight:700; line-height:1.14; color:var(--ink);
-    font-size:clamp(15px, 15vh, 30px);
+    font-weight:700; line-height:1.12; color:var(--ink);
+    font-size:1.5em;
     text-shadow:0 2px 10px rgba(0,0,0,.6);
     display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
   }
-  .bottom{ display:flex; align-items:center; gap:12px; flex:0 0 auto; flex-wrap:nowrap; }
-  .sent{ display:inline-flex; align-items:center; gap:5px; font-family:"Space Mono", monospace;
-    font-weight:700; font-size:clamp(9px, 7.5vh, 13px); letter-spacing:.04em; text-transform:uppercase;
-    padding:2px 8px; border-radius:4px; flex:0 0 auto; }
-  .sent.bull{ color:var(--bull); background:rgba(43,238,52,.10); border:1px solid rgba(43,238,52,.3); }
-  .sent.bear{ color:var(--bear); background:rgba(255,90,77,.10); border:1px solid rgba(255,90,77,.3); }
-  .sent.neu { color:var(--neu);  background:rgba(138,152,143,.10); border:1px solid rgba(138,152,143,.28); }
-  .src{ font-family:"Space Mono", monospace; font-size:clamp(9px, 7.5vh, 13px);
+  .bottom{ display:flex; align-items:center; gap:.9em; flex:0 0 auto; flex-wrap:nowrap; }
+  .sent{ display:inline-flex; align-items:center; gap:.4em; font-family:"Barlow Semi Condensed", sans-serif;
+    font-weight:700; font-size:.66em; letter-spacing:.04em; text-transform:uppercase;
+    padding:.2em .65em; border-radius:.35em; flex:0 0 auto; }
+  .sent .ico{ height:1.25em; width:auto; display:block; }
+  .sent.bull{ color:var(--bull); background:rgba(43,238,52,.10); border:.08em solid rgba(43,238,52,.3); }
+  .sent.bear{ color:var(--bear); background:rgba(255,77,68,.10); border:.08em solid rgba(255,77,68,.3); }
+  .sent.neu { color:var(--neu);  background:rgba(155,181,172,.10); border:.08em solid rgba(155,181,172,.28); }
+  .src{ font-family:"Barlow Semi Condensed", sans-serif; font-size:.66em;
     color:var(--dim2); text-transform:uppercase; letter-spacing:.06em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .time{ font-family:"Space Mono", monospace; font-size:clamp(9px, 7.5vh, 13px); color:var(--dim2); white-space:nowrap; }
-  .coins{ margin-left:auto; font-family:"Space Mono", monospace; font-weight:700;
-    font-size:clamp(9px, 7.5vh, 13px); color:var(--moss); letter-spacing:.05em; white-space:nowrap; flex:0 0 auto; }
+  .time{ font-family:"Barlow Semi Condensed", sans-serif; font-size:.66em; color:var(--dim2); white-space:nowrap; }
+  .coins{ margin-left:auto; font-family:"Barlow Semi Condensed", sans-serif; font-weight:700;
+    font-size:.66em; color:var(--moss); letter-spacing:.05em; white-space:nowrap; flex:0 0 auto; }
 
   /* animaciones de entrada/salida */
   .stage.enter .htext{ animation:enterUp .5s cubic-bezier(.2,.7,.2,1) both; }
@@ -97,12 +97,12 @@
   @keyframes leaveUp{ from{opacity:1; transform:none; filter:blur(0);} to{opacity:0; transform:translateY(-12px); filter:blur(6px);} }
 
   /* ---------- barra de progreso ---------- */
-  .progress{ position:absolute; left:0; right:0; bottom:0; height:3px; background:rgba(255,255,255,.05); }
+  .progress{ position:absolute; left:0; right:0; bottom:0; height:.22em; background:rgba(255,255,255,.05); }
   .fill{ display:block; height:100%; width:0; background:linear-gradient(90deg, var(--moss-dim), var(--moss));
     box-shadow:0 0 10px rgba(43,238,52,.5); }
 
   .idle{ flex:1; display:flex; align-items:center; justify-content:center;
-    font-family:"Space Mono", monospace; font-size:clamp(11px, 9vh, 16px);
+    font-family:"Barlow Semi Condensed", sans-serif; font-size:1em;
     color:var(--moss-dim); letter-spacing:.1em; text-transform:uppercase; }
 </style>
 </head>
@@ -114,8 +114,6 @@
 
     <div class="head">
       <img class="logo" id="logo" alt="Pulso">
-      <span class="grow"></span>
-      <span class="count" id="count"></span>
     </div>
 
     <div class="stage" id="stage">
@@ -151,7 +149,7 @@ const txt  = (k,d)=> qs.get(k) ?? d;
 
 const CFG = {
   feed:       txt('feed','https://noticias.archivocripto.app/news-data'),
-  interval:   Math.max(2500, num('interval',6500)),
+  interval:   Math.max(2500, num('interval',8500)),
   refresh:    Math.max(20, num('refresh',120))*1000,
   max:        num('max',20),
   showSource: flag('source',true),
@@ -161,11 +159,11 @@ const CFG = {
   only:       txt('only','processed'),
   label:      txt('label','Pulso'),
   logo:       txt('logo','https://cdn.jsdelivr.net/gh/javipl79/news@main/logo-pulso.png'),
+  icoBull:    txt('ico_bull','https://cdn.jsdelivr.net/gh/javipl79/news@main/ico-toro.png'),
+  icoBear:    txt('ico_bear','https://cdn.jsdelivr.net/gh/javipl79/news@main/ico-oso.png'),
 };
 
 const stage  = document.getElementById('stage');
-const accent = document.getElementById('accent');
-const count  = document.getElementById('count');
 const fill   = document.getElementById('fill');
 const sweep  = document.getElementById('sweep');
 const logoEl = document.getElementById('logo');
@@ -189,9 +187,9 @@ function relTime(ts){
   return Math.floor(h/24)+'d';
 }
 function sent(s){
-  if(s==='bull') return { cls:'bull', label:'Alcista', arrow:'▲', color:'var(--bull)' };
-  if(s==='bear') return { cls:'bear', label:'Bajista', arrow:'▼', color:'var(--bear)' };
-  return { cls:'neu', label:'Neutral', arrow:'•', color:'var(--neu)' };
+  if(s==='bull') return { cls:'bull', label:'Alcista', ico:CFG.icoBull };
+  if(s==='bear') return { cls:'bear', label:'Bajista', ico:CFG.icoBear };
+  return { cls:'neu', label:'Neutral', ico:'' };
 }
 
 function innerHTML(it){
@@ -199,7 +197,8 @@ function innerHTML(it){
   if(CFG.showSource && it.source) meta.push(`<span class="src">${esc(it.source)}</span>`);
   if(CFG.showTime && it.ts)       meta.push(`<span class="time">${relTime(it.ts)}</span>`);
   const s = sent(it.sentimiento);
-  const chip = CFG.showSent ? `<span class="sent ${s.cls}">${s.arrow} ${s.label}</span>` : '';
+  const icoImg = s.ico ? `<img class="ico" src="${s.ico}" alt="">` : '';
+  const chip = CFG.showSent ? `<span class="sent ${s.cls}">${icoImg}${esc(s.label)}</span>` : '';
   const coins = (CFG.showCoins && it.coins && it.coins.length)
     ? `<span class="coins">${it.coins.slice(0,3).map(esc).join(' ')}</span>` : '';
   return `
@@ -224,8 +223,6 @@ function showCurrent(){
   stage.classList.add('leave');
   setTimeout(() => {
     stage.innerHTML = innerHTML(it);
-    accent.style.background = sent(it.sentimiento).color;
-    count.textContent = String(idx+1).padStart(2,'0') + '/' + String(items.length).padStart(2,'0');
     void stage.offsetWidth;
     stage.classList.remove('leave');
     stage.classList.add('enter');
