@@ -16,7 +16,7 @@
     --ink:      #d8e6e0;
     --dim2:     #9bb5ac;
     --bull:     #2bee34;
-    --bear:     #ff4d44;
+    --bear:     #ff7a45;
     --neu:      #9bb5ac;
     --panel-a:  #0f1714;
     --panel-b:  #080c0a;
@@ -31,29 +31,16 @@
     display:flex; flex-direction:column;
     /* unidad base = escala con el alto del box (evmux renderiza a mayor resolución y lo encoge) */
     font-size:clamp(13px, 9vh, 220px);
-    padding:.6em 1.1em .5em 1.3em;
+    padding:.6em 1.1em .5em 1.1em;
     background:
       radial-gradient(120% 160% at 0% 0%, rgba(43,238,52,.06), transparent 55%),
       linear-gradient(135deg, var(--panel-a), var(--panel-b));
     border:1px solid rgba(43,238,52,.30);
-    border-radius:.7em;
+    border-radius:0;
     box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 10px 34px rgba(0,0,0,.55),
                 inset 0 0 60px rgba(0,0,0,.35);
     overflow:hidden;
   }
-
-  /* barra de acento vertical (color = sentimiento) */
-  .accent{
-    position:absolute; left:0; top:0; bottom:0; width:.4em;
-    background:var(--moss); box-shadow:0 0 14px rgba(43,238,52,.6);
-    transition:background .5s ease, box-shadow .5s ease;
-  }
-
-  /* esquinas tipo HUD */
-  .corner{ position:absolute; width:1em; height:1em; border:.12em solid rgba(43,238,52,.55); pointer-events:none; }
-  .corner.tr{ top:.55em; right:.55em; border-left:0; border-bottom:0; }
-  .corner.br{ bottom:.55em; right:.55em; border-left:0; border-top:0; }
-  .corner.bl{ bottom:.55em; left:.55em; border-right:0; border-top:0; }
 
   /* barrido de luz en cada cambio */
   .sweep{ position:absolute; top:0; bottom:0; width:35%; left:-40%; pointer-events:none;
@@ -63,7 +50,7 @@
 
   /* ---------- HEAD (fijo) ---------- */
   .head{ display:flex; align-items:center; gap:.6em; flex:0 0 auto; }
-  .logo{ height:1.7em; width:auto; display:block;
+  .logo{ height:1.53em; width:auto; display:block;
     filter:drop-shadow(0 1px 4px rgba(0,0,0,.55)); }
 
   /* ---------- STAGE (titular + meta, animado) ---------- */
@@ -81,7 +68,7 @@
     padding:.2em .65em; border-radius:.35em; flex:0 0 auto; }
   .sent .ico{ height:1.25em; width:auto; display:block; }
   .sent.bull{ color:var(--bull); background:rgba(43,238,52,.10); border:.08em solid rgba(43,238,52,.3); }
-  .sent.bear{ color:var(--bear); background:rgba(255,77,68,.10); border:.08em solid rgba(255,77,68,.3); }
+  .sent.bear{ color:var(--bear); background:rgba(255,122,69,.10); border:.08em solid rgba(255,122,69,.3); }
   .sent.neu { color:var(--neu);  background:rgba(155,181,172,.10); border:.08em solid rgba(155,181,172,.28); }
   .src{ font-family:"Barlow Semi Condensed", sans-serif; font-size:.66em;
     color:var(--dim2); text-transform:uppercase; letter-spacing:.06em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -108,8 +95,6 @@
 </head>
 <body>
   <div class="card">
-    <span class="accent" id="accent"></span>
-    <span class="corner tr"></span><span class="corner br"></span><span class="corner bl"></span>
     <div class="sweep" id="sweep"></div>
 
     <div class="head">
