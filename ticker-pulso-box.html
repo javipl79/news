@@ -29,16 +29,13 @@
   .card{
     position:relative; width:100%; height:100%;
     display:flex; flex-direction:column;
-    /* unidad base = escala con el alto del box (evmux renderiza a mayor resolución y lo encoge) */
-    font-size:clamp(13px, 9vh, 220px);
-    padding:.9em 1.6em .8em 1.6em;
-    background:
-      radial-gradient(120% 160% at 0% 0%, rgba(43,238,52,.06), transparent 55%),
-      linear-gradient(135deg, var(--panel-a), var(--panel-b));
+    /* unidad base = escala con el alto del box; bajada 15% para que el contenido pese menos */
+    font-size:clamp(11px, 7.65vh, 187px);
+    padding:1.05em 1.9em .95em 1.9em;
+    background:transparent;            /* lo controla ?bg= (default transparente: ponés un JPG debajo en evmux) */
     border:1px solid rgba(43,238,52,.30);
     border-radius:0;
-    box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 10px 34px rgba(0,0,0,.55),
-                inset 0 0 60px rgba(0,0,0,.35);
+    box-shadow:0 6px 24px rgba(0,0,0,.4);
     overflow:hidden;
   }
 
@@ -122,6 +119,8 @@
      coins=1|0         mostrar tickers (BTC, ETH…)
      sentiment=1|0     mostrar chip alcista/bajista/neutral
      only=processed|all  processed = solo las que pasaron por la IA
+     bg=<color>        fondo de la tarjeta (default transparent → JPG debajo en evmux)
+     border=1|0        borde verde de la tarjeta
      label=Pulso       texto alternativo del logo
      logo=<url>        URL del logo (default: logo-pulso.png en jsDelivr)
      feed=<url>        override del endpoint
@@ -146,6 +145,8 @@ const CFG = {
   logo:       txt('logo','https://cdn.jsdelivr.net/gh/javipl79/news@main/logo-pulso.png'),
   icoBull:    txt('ico_bull','https://cdn.jsdelivr.net/gh/javipl79/news@main/ico-toro.png'),
   icoBear:    txt('ico_bear','https://cdn.jsdelivr.net/gh/javipl79/news@main/ico-oso.png'),
+  bg:         txt('bg','transparent'),
+  border:     flag('border', true),
 };
 
 const stage  = document.getElementById('stage');
@@ -153,6 +154,9 @@ const fill   = document.getElementById('fill');
 const sweep  = document.getElementById('sweep');
 const logoEl = document.getElementById('logo');
 logoEl.src = CFG.logo; logoEl.alt = CFG.label;
+const card = document.querySelector('.card');
+card.style.background = CFG.bg;
+if(!CFG.border){ card.style.border = 'none'; card.style.boxShadow = 'none'; }
 
 let items = [];
 let idx = 0;
