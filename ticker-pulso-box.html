@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulso · Box — Archivo Cripto</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --moss:     #2bee34;
+    --moss-dim: #1c8f24;
+    --ink:      #eef6f0;
+    --dim2:     #7d8c84;
+    --bull:     #2bee34;
+    --bear:     #ff5a4d;
+    --neu:      #8a988f;
+    --panel-a:  #0d110f;
+    --panel-b:  #080b0a;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ width:100%; height:100%; background:transparent; overflow:hidden;
+    font-family:"Archivo", system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+
+  /* ---------- TARJETA (llena el box del source) ---------- */
+  .card{
+    position:relative; width:100%; height:100%;
+    display:flex; flex-direction:column;
+    padding:3.2% 4% 0 4.6%;
+    background:
+      radial-gradient(120% 160% at 0% 0%, rgba(43,238,52,.06), transparent 55%),
+      linear-gradient(135deg, var(--panel-a), var(--panel-b));
+    border:1px solid rgba(43,238,52,.30);
+    border-radius:10px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 10px 34px rgba(0,0,0,.55),
+                inset 0 0 60px rgba(0,0,0,.35);
+    overflow:hidden;
+  }
+
+  /* barra de acento vertical (color = sentimiento) */
+  .accent{
+    position:absolute; left:0; top:0; bottom:0; width:4px;
+    background:var(--moss); box-shadow:0 0 14px rgba(43,238,52,.6);
+    transition:background .5s ease, box-shadow .5s ease;
+  }
+
+  /* esquinas tipo HUD */
+  .corner{ position:absolute; width:12px; height:12px; border:1.5px solid rgba(43,238,52,.55); pointer-events:none; }
+  .corner.tr{ top:7px; right:7px; border-left:0; border-bottom:0; }
+  .corner.br{ bottom:7px; right:7px; border-left:0; border-top:0; }
+  .corner.bl{ bottom:7px; left:7px; border-right:0; border-top:0; }
+
+  /* barrido de luz en cada cambio */
+  .sweep{ position:absolute; top:0; bottom:0; width:35%; left:-40%; pointer-events:none;
+    background:linear-gradient(90deg, transparent, rgba(43,238,52,.14), transparent); }
+  .sweep.go{ animation:sweep .65s ease; }
+  @keyframes sweep{ to{ left:120%; } }
+
+  /* ---------- HEAD (fijo) ---------- */
+  .head{ display:flex; align-items:center; gap:9px; flex:0 0 auto; }
+  .logo{ height:clamp(13px, 11vh, 22px); width:auto; display:block;
+    filter:drop-shadow(0 1px 4px rgba(0,0,0,.55)); }
+  .grow{ flex:1; }
+  .count{ font-family:"Space Mono", monospace; font-size:clamp(10px, 7.5vh, 14px);
+    color:var(--dim2); letter-spacing:.05em; }
+
+  /* ---------- STAGE (titular + meta, animado) ---------- */
+  .stage{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; justify-content:center; gap:.5em; }
+  .htext{ flex:0 1 auto; min-height:0; display:flex; align-items:center; overflow:hidden; }
+  .headline{
+    font-weight:700; line-height:1.14; color:var(--ink);
+    font-size:clamp(15px, 15vh, 30px);
+    text-shadow:0 2px 10px rgba(0,0,0,.6);
+    display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .bottom{ display:flex; align-items:center; gap:12px; flex:0 0 auto; flex-wrap:nowrap; }
+  .sent{ display:inline-flex; align-items:center; gap:5px; font-family:"Space Mono", monospace;
+    font-weight:700; font-size:clamp(9px, 7.5vh, 13px); letter-spacing:.04em; text-transform:uppercase;
+    padding:2px 8px; border-radius:4px; flex:0 0 auto; }
+  .sent.bull{ color:var(--bull); background:rgba(43,238,52,.10); border:1px solid rgba(43,238,52,.3); }
+  .sent.bear{ color:var(--bear); background:rgba(255,90,77,.10); border:1px solid rgba(255,90,77,.3); }
+  .sent.neu { color:var(--neu);  background:rgba(138,152,143,.10); border:1px solid rgba(138,152,143,.28); }
+  .src{ font-family:"Space Mono", monospace; font-size:clamp(9px, 7.5vh, 13px);
+    color:var(--dim2); text-transform:uppercase; letter-spacing:.06em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .time{ font-family:"Space Mono", monospace; font-size:clamp(9px, 7.5vh, 13px); color:var(--dim2); white-space:nowrap; }
+  .coins{ margin-left:auto; font-family:"Space Mono", monospace; font-weight:700;
+    font-size:clamp(9px, 7.5vh, 13px); color:var(--moss); letter-spacing:.05em; white-space:nowrap; flex:0 0 auto; }
+
+  /* animaciones de entrada/salida */
+  .stage.enter .htext{ animation:enterUp .5s cubic-bezier(.2,.7,.2,1) both; }
+  .stage.enter .bottom{ animation:enterUp .5s cubic-bezier(.2,.7,.2,1) .07s both; }
+  .stage.leave .htext, .stage.leave .bottom{ animation:leaveUp .4s ease both; }
+  @keyframes enterUp{ from{opacity:0; transform:translateY(14px); filter:blur(6px);} to{opacity:1; transform:none; filter:blur(0);} }
+  @keyframes leaveUp{ from{opacity:1; transform:none; filter:blur(0);} to{opacity:0; transform:translateY(-12px); filter:blur(6px);} }
+
+  /* ---------- barra de progreso ---------- */
+  .progress{ position:absolute; left:0; right:0; bottom:0; height:3px; background:rgba(255,255,255,.05); }
+  .fill{ display:block; height:100%; width:0; background:linear-gradient(90deg, var(--moss-dim), var(--moss));
+    box-shadow:0 0 10px rgba(43,238,52,.5); }
+
+  .idle{ flex:1; display:flex; align-items:center; justify-content:center;
+    font-family:"Space Mono", monospace; font-size:clamp(11px, 9vh, 16px);
+    color:var(--moss-dim); letter-spacing:.1em; text-transform:uppercase; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <span class="accent" id="accent"></span>
+    <span class="corner tr"></span><span class="corner br"></span><span class="corner bl"></span>
+    <div class="sweep" id="sweep"></div>
+
+    <div class="head">
+      <img class="logo" id="logo" alt="Pulso">
+      <span class="grow"></span>
+      <span class="count" id="count"></span>
+    </div>
+
+    <div class="stage" id="stage">
+      <div class="idle">Conectando con Pulso…</div>
+    </div>
+
+    <div class="progress"><i class="fill" id="fill"></i></div>
+  </div>
+
+<script>
+/* ======================================================================
+   PULSO · BOX — tarjeta rotadora de titulares para el recuadro de evmux.
+   Llena el 100% del source web; escalalo al box debajo de la cámara.
+
+   Parámetros (?interval=7000&max=20&...):
+     interval=6500     ms que dura cada titular en pantalla
+     refresh=120       cada cuántos seg recarga el feed
+     max=20            cantidad máx de titulares en rotación
+     source=1|0        mostrar fuente
+     time=1|0          mostrar antigüedad (12m, 3h…)
+     coins=1|0         mostrar tickers (BTC, ETH…)
+     sentiment=1|0     mostrar chip alcista/bajista/neutral
+     only=processed|all  processed = solo las que pasaron por la IA
+     label=Pulso       texto alternativo del logo
+     logo=<url>        URL del logo (default: logo-pulso.png en jsDelivr)
+     feed=<url>        override del endpoint
+   ====================================================================== */
+
+const qs = new URLSearchParams(location.search);
+const num  = (k,d)=>{ const v=parseFloat(qs.get(k)); return isFinite(v)?v:d; };
+const flag = (k,d)=>{ const v=qs.get(k); return v===null ? d : (v==='1'||v==='true'||v==='on'); };
+const txt  = (k,d)=> qs.get(k) ?? d;
+
+const CFG = {
+  feed:       txt('feed','https://noticias.archivocripto.app/news-data'),
+  interval:   Math.max(2500, num('interval',6500)),
+  refresh:    Math.max(20, num('refresh',120))*1000,
+  max:        num('max',20),
+  showSource: flag('source',true),
+  showTime:   flag('time',true),
+  showCoins:  flag('coins',true),
+  showSent:   flag('sentiment',true),
+  only:       txt('only','processed'),
+  label:      txt('label','Pulso'),
+  logo:       txt('logo','https://cdn.jsdelivr.net/gh/javipl79/news@main/logo-pulso.png'),
+};
+
+const stage  = document.getElementById('stage');
+const accent = document.getElementById('accent');
+const count  = document.getElementById('count');
+const fill   = document.getElementById('fill');
+const sweep  = document.getElementById('sweep');
+const logoEl = document.getElementById('logo');
+logoEl.src = CFG.logo; logoEl.alt = CFG.label;
+
+let items = [];
+let idx = 0;
+let lastIds = '';
+let rotTimer = null;
+let retryTimer = null;
+
+/* ---------- helpers ---------- */
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function relTime(ts){
+  if(!ts) return '';
+  const m = Math.floor(Math.max(0, Date.now()-ts)/60000);
+  if(m<1) return 'ahora';
+  if(m<60) return m+'m';
+  const h = Math.floor(m/60);
+  if(h<24) return h+'h';
+  return Math.floor(h/24)+'d';
+}
+function sent(s){
+  if(s==='bull') return { cls:'bull', label:'Alcista', arrow:'▲', color:'var(--bull)' };
+  if(s==='bear') return { cls:'bear', label:'Bajista', arrow:'▼', color:'var(--bear)' };
+  return { cls:'neu', label:'Neutral', arrow:'•', color:'var(--neu)' };
+}
+
+function innerHTML(it){
+  const meta = [];
+  if(CFG.showSource && it.source) meta.push(`<span class="src">${esc(it.source)}</span>`);
+  if(CFG.showTime && it.ts)       meta.push(`<span class="time">${relTime(it.ts)}</span>`);
+  const s = sent(it.sentimiento);
+  const chip = CFG.showSent ? `<span class="sent ${s.cls}">${s.arrow} ${s.label}</span>` : '';
+  const coins = (CFG.showCoins && it.coins && it.coins.length)
+    ? `<span class="coins">${it.coins.slice(0,3).map(esc).join(' ')}</span>` : '';
+  return `
+    <div class="htext"><h1 class="headline">${esc(it.title)}</h1></div>
+    <div class="bottom">${chip}${meta.join('<span class="time">·</span>')}${coins}</div>`;
+}
+
+/* reduce la tipografía del titular si no entra en su caja */
+function fit(){
+  const box = stage.querySelector('.htext');
+  const h   = stage.querySelector('.headline');
+  if(!box || !h) return;
+  let fs = parseFloat(getComputedStyle(h).fontSize), guard = 0;
+  while(h.scrollHeight > box.clientHeight + 1 && fs > 11 && guard < 40){ fs -= 1; h.style.fontSize = fs+'px'; guard++; }
+}
+
+/* ---------- rotación ---------- */
+function showCurrent(){
+  const it = items[idx];
+  if(!it) return;
+  stage.classList.remove('enter');
+  stage.classList.add('leave');
+  setTimeout(() => {
+    stage.innerHTML = innerHTML(it);
+    accent.style.background = sent(it.sentimiento).color;
+    count.textContent = String(idx+1).padStart(2,'0') + '/' + String(items.length).padStart(2,'0');
+    void stage.offsetWidth;
+    stage.classList.remove('leave');
+    stage.classList.add('enter');
+    fit();
+    // barrido
+    sweep.classList.remove('go'); void sweep.offsetWidth; sweep.classList.add('go');
+    // progreso
+    fill.style.transition = 'none'; fill.style.width = '0%'; void fill.offsetWidth;
+    fill.style.transition = `width ${CFG.interval}ms linear`; fill.style.width = '100%';
+  }, 380);
+}
+function next(){ idx = (idx+1) % items.length; showCurrent(); }
+function startRotation(){
+  if(rotTimer) clearInterval(rotTimer);
+  if(!items.length) return;
+  idx = 0; showCurrent();
+  rotTimer = setInterval(next, CFG.interval);
+}
+
+/* ---------- feed ---------- */
+async function fetchItems(){
+  const r = await fetch(CFG.feed, { cache:'no-store' });
+  if(!r.ok) throw new Error('feed '+r.status);
+  const data = await r.json();
+  let list = (data.items || []).map(it => ({
+    id: it.id, title: it.titulo_es || it.title || '', source: it.source || '',
+    sentimiento: it.sentimiento || '', coins: Array.isArray(it.coins)?it.coins:[],
+    ts: it.ts || 0, score: it.score || 0,
+    procesada: it.procesada === true || (it.score||0) > 0,
+  }));
+  list = list.filter(it => it.title && (CFG.only !== 'processed' || it.procesada));
+  list.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  return list.slice(0, CFG.max);
+}
+
+async function load(){
+  try{
+    const fresh = await fetchItems();
+    const ids = fresh.map(it=>it.id).join('|');
+    if(ids !== lastIds){
+      lastIds = ids; items = fresh;
+      if(items.length) startRotation();
+      else stage.innerHTML = '<div class="idle">Sin titulares por ahora</div>';
+    }
+    if(retryTimer){ clearTimeout(retryTimer); retryTimer = null; }
+  }catch(e){
+    if(!items.length) stage.innerHTML = '<div class="idle">Conectando con Pulso…</div>';
+    if(retryTimer) clearTimeout(retryTimer);
+    retryTimer = setTimeout(load, 15000);
+  }
+}
+
+load();
+setInterval(load, CFG.refresh);
+window.addEventListener('resize', () => { if(items.length) fit(); });
+</script>
+</body>
+</html>
