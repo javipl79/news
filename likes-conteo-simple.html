@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  /* ── CONFIG ──────────────────────────────────────────────
+     Mismo backend que Cupos Live: lee likes (L1) y la meta (goal).
+     ──────────────────────────────────────────────────────── */
+  var CONFIG = {
+    SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxeb5IkiGj7bjIv0_2OT_2nkvQOioJdpht8f7QAnCxMAQ8MmeWbPmsed-hd4oHOlNDUqw/exec',
+    GOAL: 100,      // meta por defecto (se actualiza con la del backend si llega)
+    POLL_MS: 5000
+  };
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; background:transparent; overflow:hidden; }
+  .wrap { width:100%; height:100vh; display:flex; align-items:center; justify-content:center; }
+
+  .row {
+    font-family:'Barlow', sans-serif; font-weight:800;
+    font-size:200px; line-height:1;
+    font-variant-numeric:tabular-nums;
+    display:inline-flex; align-items:baseline;
+    text-shadow: 0 3px 12px rgba(0,0,0,.85), 0 0 3px rgba(0,0,0,.9);
+  }
+  .num  { color:#2bee34; animation: glowPulse 2.2s ease-in-out infinite; }  /* tu verde (cambiable por ?color=) */
+  .sep  { color:#ffffff; margin:0 .22em; }                                  /* la barra en blanco */
+  .goal { color:#2bee34; }                                                  /* tu verde */
+
+  /* el número "respira" con un glow verde suave */
+  @keyframes glowPulse {
+    0%,100% { text-shadow: 0 3px 12px rgba(0,0,0,.85), 0 0 3px rgba(0,0,0,.9), 0 0 16px rgba(43,238,52,.30); }
+    50%     { text-shadow: 0 3px 12px rgba(0,0,0,.85), 0 0 3px rgba(0,0,0,.9), 0 0 38px rgba(43,238,52,.7); }
+  }
+  /* golpecito cuando suben los likes */
+  .row.bump { animation: bump .45s cubic-bezier(.2,.8,.2,1); }
+  @keyframes bump { 0%{transform:scale(1)} 38%{transform:scale(1.12)} 100%{transform:scale(1)} }
+
+  @media (prefers-reduced-motion: reduce){
+    .num { animation:none; text-shadow: 0 3px 12px rgba(0,0,0,.85), 0 0 3px rgba(0,0,0,.9), 0 0 24px rgba(43,238,52,.5); }
+    .row.bump { animation:none; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="row" id="row"><span class="num" id="likes">0</span><span class="sep">/</span><span class="goal" id="goal">100</span></div>
+  </div>
+
+<script>
+  var qs = new URLSearchParams(location.search);
+  var elNum = document.getElementById('likes');
+  var elGoal = document.getElementById('goal');
+  var elRow = document.getElementById('row');
+  // Ajustes opcionales por URL:  ?size=240  ?color=2bee34  ?goal=150
+  if (qs.get('size'))  elRow.style.fontSize = parseInt(qs.get('size'), 10) + 'px';
+  if (qs.get('color')){ var c = '#' + qs.get('color').replace('#',''); document.querySelector('.num').style.color = c; elGoal.style.color = c; }
+  if (qs.get('goal'))  CONFIG.GOAL = parseInt(qs.get('goal'), 10) || CONFIG.GOAL;
+  elGoal.textContent = CONFIG.GOAL;
+  var DEMO = /[?&]demo=1/.test(location.search);
+
+  var shown = 0;
+  function fmt(n){ return Number(n).toLocaleString('es-AR'); }
+  function easeOut(p){ return 1 - Math.pow(1 - p, 3); }
+
+  function animateTo(target){
+    target = Number(target) || 0;
+    if (target === shown){ elNum.textContent = fmt(target); return; }
+    var start = shown, t0 = performance.now(), dur = 700;
+    if (target > start){ elRow.classList.remove('bump'); void elRow.offsetWidth; elRow.classList.add('bump'); }
+    function step(now){
+      var p = Math.min(1, (now - t0) / dur);
+      var val = Math.round(start + (target - start) * easeOut(p));
+      elNum.textContent = fmt(val);
+      if (p < 1) requestAnimationFrame(step);
+      else { shown = target; }
+    }
+    requestAnimationFrame(step);
+  }
+
+  function jsonp(params){
+    return new Promise(function(resolve, reject){
+      var cb = 'lcb_' + Date.now() + '_' + Math.floor(Math.random()*99999);
+      var s = document.createElement('script'); var done = false;
+      window[cb] = function(data){ done = true; cleanup(); resolve(data); };
+      function cleanup(){ try{ delete window[cb]; }catch(e){ window[cb] = undefined; } if (s.parentNode) s.parentNode.removeChild(s); }
+      params.callback = cb;
+      var q = Object.keys(params).map(function(k){ return encodeURIComponent(k)+'='+encodeURIComponent(params[k]); }).join('&');
+      s.src = CONFIG.SCRIPT_URL + '?' + q;
+      s.onerror = function(){ if(!done){ cleanup(); reject(new Error('net')); } };
+      document.body.appendChild(s);
+      setTimeout(function(){ if(!done){ cleanup(); reject(new Error('timeout')); } }, 9000);
+    });
+  }
+
+  function poll(){
+    jsonp({ action:'status' }).then(function(r){
+      if (r && typeof r.likes !== 'undefined'){
+        if (typeof r.goal !== 'undefined' && Number(r.goal)) { CONFIG.GOAL = Number(r.goal); elGoal.textContent = CONFIG.GOAL; }
+        animateTo(r.likes);
+      }
+    }).catch(function(){});
+  }
+
+  if (DEMO){
+    var v = 0;
+    setInterval(function(){ v = Math.min(CONFIG.GOAL, v + Math.floor(Math.random()*6) + 1); animateTo(v); }, 1400);
+  } else {
+    poll();
+    setInterval(poll, CONFIG.POLL_MS);
+  }
+</script>
+</body>
+</html>
