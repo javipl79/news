@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<script>
+  /* ╔════════════════════════════════════════════════════╗
+     ║   CONFIGURACIÓN — LO ÚNICO QUE SE EDITA EN TODO     ║
+     ║   EL ARCHIVO. Reemplazá la URL de la línea de       ║
+     ║   abajo por tu URL /exec de Apps Script.            ║
+     ╚════════════════════════════════════════════════════╝ */
+  var CONFIG = {
+    SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxeb5IkiGj7bjIv0_2OT_2nkvQOioJdpht8f7QAnCxMAQ8MmeWbPmsed-hd4oHOlNDUqw/exec',
+    MAX_SPOTS: 3,
+    LIKES_GOAL: 100,
+    ORIGEN: 'CONCURSO LIVE',
+    POLL_MS: 2500
+  };
+  /* ═══════ NO TOCAR NADA DEBAJO DE ESTA LÍNEA ═══════ */
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --green: #00ff00; --red: #ff3b3b; --amber: #ffb000; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: #000 url('wrbg.jpg') center center / cover no-repeat;
+  }
+  .wr-bg-overlay { position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: linear-gradient(90deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.30) 55%, rgba(0,0,0,.55) 100%); }
+  .wr-section { position: relative; z-index: 1; min-height: 100vh; width: 100%;
+    display: flex; align-items: center; justify-content: flex-end; padding: 24px 7vw; }
+  @media (max-width: 768px){ .wr-section { justify-content: center; padding: 18px 12px; } }
+  .wr-inner { width: 100%; max-width: 560px; margin: 0 auto; }
+  .wr-card-wrap { position: relative; border-radius: 3px; padding: 2px; }
+  .wr-card-wrap::before {
+    content: ''; position: absolute; inset: 0; border-radius: 3px; padding: 2px;
+    background: conic-gradient(from var(--angle, 0deg),
+      transparent 0deg, transparent 60deg, var(--green) 95deg, transparent 130deg, transparent 360deg);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude; animation: rotateBorder 4s linear infinite;
+  }
+  @property --angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+  @keyframes rotateBorder { to { --angle: 360deg; } }
+  .wr-panel {
+    position: relative; overflow: hidden; border-radius: 2px; padding: 22px 24px 22px;
+    background-image: url('https://static.wixstatic.com/media/a297a9_86e4f0db22a54008904e38bc326ed97d~mv2.jpg');
+    background-size: cover; background-position: center;
+  }
+  .wr-panel::before { content:''; position:absolute; inset:0; background: linear-gradient(180deg, rgba(0,0,0,0.62), rgba(0,0,0,0.82)); }
+  .wr-panel::after { content:''; position:absolute; inset:0; pointer-events:none; opacity:.5;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0,0,0,.10) 3px, rgba(0,0,0,0) 4px); }
+  .wr-content { position: relative; z-index: 2; }
+  .wr-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .wr-live { display:flex; align-items:center; gap:8px; font-family:'Bebas Neue',sans-serif; letter-spacing:3px; font-size:14px; color:#fff; }
+  .wr-live-dot { width:9px; height:9px; border-radius:50%; background:var(--red); box-shadow:0 0 8px 2px var(--red); animation:blink 1.1s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+  .wr-brand { font-family:'Bebas Neue',sans-serif; letter-spacing:4px; font-size:14px; color:var(--green); opacity:.85; }
+
+  /* fila héroe compacta y de altura FIJA */
+  .wr-hero { height:84px; display:flex; align-items:center; gap:18px; margin-bottom:12px; }
+  .wr-radar { width:64px; height:64px; flex:none; border-radius:50%; position:relative; border:1px solid rgba(0,255,0,.35); box-shadow:inset 0 0 16px rgba(0,255,0,.10); }
+  .wr-radar::before { content:''; position:absolute; inset:0; border-radius:50%; background:conic-gradient(from 0deg, rgba(0,255,0,.45), transparent 55deg); animation:sweep 2.4s linear infinite; }
+  .wr-radar::after { content:''; position:absolute; inset:38%; border-radius:50%; background:var(--green); box-shadow:0 0 10px 2px var(--green); }
+  @keyframes sweep { to { transform: rotate(360deg); } }
+  .wr-mark { display:none; width:64px; height:64px; flex:none; border-radius:50%; border:1px solid;
+    align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:32px; line-height:1; }
+  .wr-mark.ok { color:var(--green); border-color:rgba(0,255,0,.5); box-shadow:0 0 18px rgba(0,255,0,.35), inset 0 0 12px rgba(0,255,0,.12); }
+  .wr-mark.full { color:var(--red); border-color:rgba(255,59,59,.5); box-shadow:0 0 18px rgba(255,59,59,.3), inset 0 0 12px rgba(255,59,59,.10); }
+  .wr-hero-text { flex:1; min-width:0; }
+  .wr-big { font-family:'Bebas Neue',sans-serif; font-size:42px; line-height:.95; letter-spacing:1.5px; color:#fff; transition:color .3s; }
+  .wr-big b { color:var(--green); font-weight:normal; }
+  .wr-big.is-open { color:var(--green); text-shadow:0 0 20px rgba(0,255,0,.45); }
+  .wr-big.is-full { color:var(--red); text-shadow:0 0 16px rgba(255,59,59,.4); }
+  .wr-small { font-size:13px; color:rgba(255,255,255,.72); margin-top:5px; line-height:1.35; }
+  .glitch { animation: glitch .4s steps(2) 2; }
+  @keyframes glitch { 0%{transform:translate(0,0)} 25%{transform:translate(-2px,1px)} 50%{transform:translate(2px,-1px)} 75%{transform:translate(-1px,0)} 100%{transform:translate(0,0)} }
+
+  .wr-likes { width:100%; margin-bottom:16px; }
+  .wr-likes-top { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:6px; }
+  .wr-likes-label { font-family:'Bebas Neue',sans-serif; letter-spacing:3px; font-size:17px; color:rgba(255,255,255,.8); }
+  .wr-likes-count { font-family:'Bebas Neue',sans-serif; letter-spacing:1px; font-size:30px; color:#fff; }
+  .wr-likes-count b { color:var(--green); }
+  .wr-likes-track { width:100%; height:18px; border-radius:9px; background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.18); overflow:hidden; position:relative; }
+  .wr-likes-fill { height:100%; width:0%; border-radius:8px; transition:width .6s cubic-bezier(.2,.8,.2,1); background:linear-gradient(90deg, rgba(0,255,0,.55), var(--green)); box-shadow:0 0 14px rgba(0,255,0,.5); }
+  .wr-likes-fill.near { animation: nearPulse 1s ease-in-out infinite; }
+  @keyframes nearPulse { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.4)} }
+
+  .wr-slots-label { text-align:center; font-family:'Bebas Neue',sans-serif; letter-spacing:3px; font-size:13px; color:rgba(255,255,255,.55); margin-bottom:8px; }
+  .wr-slots { display:grid; gap:10px; margin-bottom:18px; }
+  .wr-slot { aspect-ratio:3/2; border:1px solid rgba(0,255,0,.55); border-radius:3px; background:rgba(0,255,0,.05);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+    position:relative; overflow:hidden; transition:all .35s ease; }
+  .wr-slot-num { font-family:'Bebas Neue',sans-serif; font-size:40px; line-height:1; color:var(--green); }
+  /* los cupos libres (abiertos, sin tomar) brillan para llamar la atención */
+  .wr-slot:not(.locked):not(.taken) .wr-slot-num { animation: slotGlow 1.7s ease-in-out infinite; }
+  .wr-slot:not(.locked):not(.taken) { animation: slotPulse 1.7s ease-in-out infinite; }
+  @keyframes slotGlow {
+    0%,100% { text-shadow: 0 0 7px rgba(0,255,0,.5), 0 0 16px rgba(0,255,0,.22); }
+    50%     { text-shadow: 0 0 15px rgba(0,255,0,.95), 0 0 32px rgba(0,255,0,.5); }
+  }
+  @keyframes slotPulse {
+    0%,100% { box-shadow: 0 0 0 rgba(0,255,0,0); border-color: rgba(0,255,0,.55); }
+    50%     { box-shadow: 0 0 18px rgba(0,255,0,.35); border-color: rgba(0,255,0,.9); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .wr-slot:not(.locked):not(.taken) .wr-slot-num { animation:none; text-shadow:0 0 12px rgba(0,255,0,.6); }
+    .wr-slot:not(.locked):not(.taken) { animation:none; }
+  }
+  .wr-slot-lbl { font-family:'Bebas Neue',sans-serif; font-size:13px; letter-spacing:2px; color:rgba(0,255,0,.85); }
+  .wr-slot.locked { opacity:.4; filter:saturate(.5); }
+  .wr-slot.taken { border-color:var(--red); background:rgba(255,59,59,.07); box-shadow:0 0 14px rgba(255,59,59,.25); animation:pop .35s ease; }
+  .wr-slot.taken .wr-slot-num { color:var(--red); }
+  .wr-slot.taken .wr-slot-lbl { color:rgba(255,59,59,.9); }
+  .wr-slot.taken::after { content:''; position:absolute; left:-25%; top:50%; width:150%; height:3px; margin-top:-1.5px;
+    background:var(--red); box-shadow:0 0 10px rgba(255,59,59,.8); transform:rotate(33deg); }
+  .wr-slot.mine { box-shadow:0 0 22px rgba(255,59,59,.5); }
+  @keyframes pop { 0%{transform:scale(.7)} 60%{transform:scale(1.12)} 100%{transform:scale(1)} }
+
+  .wr-form { position:relative; transition:opacity .35s, filter .35s; }
+  .wr-form.locked { opacity:.35; filter:blur(1.5px); pointer-events:none; }
+  .wr-field { display:flex; flex-direction:column; gap:5px; margin-bottom:12px; }
+  .wr-label { font-size:10px; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,.65); }
+  .wr-input { width:100%; padding:12px 15px; background:rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.25); color:#fff; font-family:'Barlow',sans-serif; font-size:15px; outline:none; transition:border-color .15s; border-radius:3px; }
+  .wr-input:focus { border-color:var(--green); }
+  .wr-input::placeholder { color:rgba(255,255,255,.32); }
+  .wr-input.error { border-color:var(--red) !important; }
+  .wr-input.valid { border-color:var(--green) !important; }
+  .wr-msg-field { font-size:11px; min-height:14px; margin-top:2px; }
+  .wr-reg-note { font-size:12px; color:rgba(255,255,255,.6); line-height:1.5; margin-bottom:14px; padding:9px 12px; border-left:2px solid rgba(0,255,0,.6); background:rgba(0,255,0,.04); }
+  .wr-reg-note a { color:var(--green); text-decoration:none; font-weight:600; }
+  .wr-reg-note a:hover { text-decoration:underline; }
+  .wr-uid-help { display:inline-block; margin-top:3px; font-size:12px; color:var(--green); text-decoration:none; opacity:.85; }
+  .wr-uid-help:hover { opacity:1; text-decoration:underline; }
+  .wr-btn { display:block; width:100%; padding:15px; margin-top:4px; background-color:var(--green); border:none; color:#000; font-family:'Barlow',sans-serif; font-size:15px; font-weight:700; letter-spacing:2px; text-transform:uppercase; cursor:pointer; border-radius:6px; transition:all .2s; }
+  .wr-btn:hover:not(:disabled) { background-color:#001a00; color:var(--green); box-shadow:0 0 22px 6px rgba(0,255,0,.30); }
+  .wr-btn:disabled { background-color:rgba(255,255,255,.10); color:rgba(255,255,255,.45); cursor:not-allowed; }
+  .wr-btn.open-pulse { animation: pulseGlow 2.2s ease-in-out infinite; }
+  @keyframes pulseGlow { 0%{box-shadow:0 0 6px 2px rgba(0,255,0,.20)} 50%{box-shadow:0 0 26px 9px rgba(0,255,0,.45)} 100%{box-shadow:0 0 6px 2px rgba(0,255,0,.20)} }
+  .wr-bottom-msg { margin-top:10px; text-align:center; font-size:13px; min-height:18px; font-weight:600; }
+  .wr-result { position:absolute; inset:0; z-index:5; background:rgba(0,0,0,.92); display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:30px; border-radius:2px; }
+  .wr-result.show { display:flex; animation:fade .3s ease; }
+  @keyframes fade { from{opacity:0} to{opacity:1} }
+  .wr-result-big { font-family:'Bebas Neue',sans-serif; font-size:64px; line-height:1; margin-bottom:10px; }
+  .wr-result.win .wr-result-big { color:var(--green); text-shadow:0 0 26px rgba(0,255,0,.5); }
+  .wr-result.lose .wr-result-big { color:var(--red); }
+  .wr-result-txt { color:rgba(255,255,255,.85); font-size:15px; line-height:1.6; max-width:300px; }
+  .wr-result-pos { font-family:'Bebas Neue',sans-serif; color:#fff; font-size:22px; letter-spacing:2px; margin-top:8px; }
+
+  /* ── PANTALLA "FUERA DEL AIRE" (sin stream) ───────────────────
+     Se muestra dentro del mismo panel cuando N1 (video) está vacío. */
+  .wr-offline { display:none; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; min-height:300px; gap:16px; padding:10px 4px; animation:fade .4s ease; }
+  .wr-offline.show { display:flex; }
+  .wr-off-radar { width:74px; height:74px; border-radius:50%; position:relative; opacity:.5;
+    border:1px solid rgba(0,255,0,.3); }
+  .wr-off-radar::before { content:''; position:absolute; inset:0; border-radius:50%;
+    background:conic-gradient(from 0deg, rgba(0,255,0,.35), transparent 60deg); animation:sweep 6s linear infinite; }
+  .wr-off-big { font-family:'Bebas Neue',sans-serif; font-size:46px; line-height:.95; letter-spacing:1.5px; color:#fff; }
+  .wr-off-big b { color:var(--green); font-weight:normal; }
+  .wr-off-sub { font-size:15px; color:rgba(255,255,255,.7); max-width:36ch; line-height:1.5; }
+  .wr-off-link { font-size:14px; color:var(--green); text-decoration:none; font-weight:700; letter-spacing:.5px;
+    border-bottom:1px solid transparent; transition:border-color .2s; }
+  .wr-off-link:hover { border-color:var(--green); }
+  @media (prefers-reduced-motion: reduce){ .wr-off-radar::before { animation:none; } }
+
+  /* versión MOBILE: se activa sola cuando el elemento mide <=480px */
+  @media (max-width:480px){
+    .wr-section { padding:14px 6px; }
+    .wr-panel { padding:18px 14px 16px; }
+    .wr-hero { height:66px; gap:12px; }
+    .wr-radar, .wr-mark { width:50px; height:50px; }
+    .wr-mark { font-size:26px; }
+    .wr-big { font-size:30px; }
+    .wr-small { font-size:11.5px; }
+    .wr-likes-count { font-size:24px; }
+    .wr-likes-label { font-size:15px; }
+    .wr-slot-num { font-size:27px; }
+    .wr-slot-lbl { font-size:10px; letter-spacing:1px; }
+    .wr-btn { padding:13px; font-size:14px; }
+    .wr-result-big { font-size:46px; }
+    .wr-offline { min-height:230px; }
+    .wr-off-big { font-size:34px; }
+    .wr-off-sub { font-size:13px; }
+  }
+</style>
+</head>
+<body>
+<div class="wr-bg-overlay"></div>
+<div class="wr-section">
+  <div class="wr-inner">
+    <div class="wr-card-wrap">
+      <div class="wr-panel">
+        <div class="wr-content">
+          <div id="wr-cupos">
+          <div class="wr-hero">
+            <div class="wr-radar" id="wr-radar"></div>
+            <div class="wr-mark" id="wr-mark">✓</div>
+            <div class="wr-hero-text">
+              <div class="wr-big" id="wr-big">FALTAN <b>100</b> LIKES</div>
+              <div class="wr-small" id="wr-small">para abrir los 3 cupos · ¡dale like al vivo!</div>
+            </div>
+          </div>
+
+          <div class="wr-likes" id="wr-likes">
+            <div class="wr-likes-top">
+              <span class="wr-likes-label">META DE LIKES</span>
+              <span class="wr-likes-count" id="wr-likes-count"><b>0</b> / 100</span>
+            </div>
+            <div class="wr-likes-track"><div class="wr-likes-fill" id="wr-likes-fill"></div></div>
+          </div>
+
+          <div class="wr-slots-label" id="wr-slots-label">3 LUGARES</div>
+          <div class="wr-slots" id="wr-slots"></div>
+          <div class="wr-form locked" id="wr-form">
+
+            <div class="wr-reg-note">Requisito: tu cuenta de <strong>Bitunix</strong> tiene que estar creada con mi link →
+              <a href="https://www.bitunix.com/register?vipCode=archivo" target="_blank">Crear cuenta en Bitunix</a>
+            </div>
+
+            <div class="wr-field">
+              <label class="wr-label">Usuario de Telegram</label>
+              <input class="wr-input" id="wr-telegram" type="text" placeholder="@tuusuario" disabled />
+              <span class="wr-msg-field" id="msg-telegram"></span>
+            </div>
+
+            <div class="wr-field">
+              <label class="wr-label">UID de Bitunix</label>
+              <input class="wr-input" id="wr-uid" type="text" placeholder="Tu UID de Bitunix" disabled />
+              <span class="wr-msg-field" id="msg-uid"></span>
+              <a class="wr-uid-help" href="https://youtu.be/9zV7ucxv77g" target="_blank">¿Qué es un UID y cómo lo consigo? →</a>
+            </div>
+
+            <div class="wr-field">
+              <label class="wr-label">Email</label>
+              <input class="wr-input" id="wr-email" type="text" placeholder="tu@email.com" disabled />
+              <span class="wr-msg-field" id="msg-email"></span>
+            </div>
+
+            <button class="wr-btn" id="wr-btn" disabled onclick="tomarLugar()">ESPERANDO META...</button>
+            <div class="wr-bottom-msg" id="wr-bottom-msg"></div>
+          </div>
+          <div class="wr-result" id="wr-result">
+            <div class="wr-result-big" id="wr-result-big"></div>
+            <div class="wr-result-txt" id="wr-result-txt"></div>
+            <div class="wr-result-pos" id="wr-result-pos"></div>
+          </div>
+          </div>
+
+          <div class="wr-offline" id="wr-offline">
+            <div class="wr-off-radar"></div>
+            <div class="wr-off-big">NOS VEMOS EN EL<br><b>PRÓXIMO STREAM</b></div>
+            <div class="wr-off-sub">Activá la campana en YouTube y te avisamos apenas arranque el próximo vivo.</div>
+            <a class="wr-off-link" href="https://archivocripto.com/war" target="_blank" rel="noopener">Mientras tanto, sumate a War Room →</a>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  var DEMO = CONFIG.SCRIPT_URL.indexOf('PEGA_ACA') !== -1 || /[?&]demo=1/.test(location.search);
+  var state = { gate: 'WAIT', count: 0, likes: 0, offline: false };
+  var myPosition = null, rendered = '', submitting = false;
+
+  (function buildSlots(){
+    var c = document.getElementById('wr-slots');
+    c.style.gridTemplateColumns = 'repeat('+CONFIG.MAX_SPOTS+',1fr)';
+    for (var i=1;i<=CONFIG.MAX_SPOTS;i++){
+      var d=document.createElement('div'); d.className='wr-slot'; d.id='slot-'+i;
+      d.innerHTML='<span class="wr-slot-num">'+('0'+i).slice(-2)+'</span><span class="wr-slot-lbl">DISPONIBLE</span>';
+      c.appendChild(d);
+    }
+  })();
+
+  function jsonp(params){
+    return new Promise(function(resolve, reject){
+      var cb='wrcb_'+Date.now()+'_'+Math.floor(Math.random()*99999);
+      var s=document.createElement('script'); var done=false;
+      window[cb]=function(data){ done=true; cleanup(); resolve(data); };
+      function cleanup(){ try{delete window[cb];}catch(e){window[cb]=undefined;} if(s.parentNode) s.parentNode.removeChild(s); }
+      params.callback=cb;
+      var qs=Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);}).join('&');
+      s.src=CONFIG.SCRIPT_URL+'?'+qs;
+      s.onerror=function(){ if(!done){cleanup(); reject(new Error('net'));} };
+      document.body.appendChild(s);
+      setTimeout(function(){ if(!done){cleanup(); reject(new Error('timeout'));} }, 9000);
+    });
+  }
+
+  function computePhase(){
+    var open = (state.gate === 'GO') || (state.likes >= CONFIG.LIKES_GOAL);
+    if (!open) return 'WAIT';
+    if (state.count >= CONFIG.MAX_SPOTS) return 'FULL';
+    return 'OPEN';
+  }
+
+  function render(){
+    // Si no hay stream (N1 vacío): mostramos la pantalla "fuera del aire" y ocultamos los cupos.
+    var off = state.offline === true;
+    document.getElementById('wr-offline').classList.toggle('show', off);
+    document.getElementById('wr-cupos').style.display = off ? 'none' : '';
+    if (off) return;
+
+    var phase=computePhase();
+    var big=document.getElementById('wr-big'), small=document.getElementById('wr-small');
+    var form=document.getElementById('wr-form'), btn=document.getElementById('wr-btn');
+    var radar=document.getElementById('wr-radar'), mark=document.getElementById('wr-mark');
+    var label=document.getElementById('wr-slots-label');
+    var inputs=['wr-telegram','wr-uid','wr-email'];
+    var pct=Math.min(100, Math.round(state.likes / CONFIG.LIKES_GOAL * 100));
+    document.getElementById('wr-likes-fill').style.width = pct + '%';
+    document.getElementById('wr-likes-count').innerHTML = '<b>'+state.likes+'</b> / '+CONFIG.LIKES_GOAL;
+    document.getElementById('wr-likes-fill').classList.toggle('near', pct>=80 && pct<100);
+
+    for (var i=1;i<=CONFIG.MAX_SPOTS;i++){
+      var slot=document.getElementById('slot-'+i);
+      var lbl=slot.querySelector('.wr-slot-lbl');
+      slot.classList.remove('taken','mine','locked');
+      if (i<=state.count){
+        slot.classList.add('taken');
+        if (myPosition===i){ slot.classList.add('mine'); lbl.textContent='TUYO'; }
+        else { lbl.textContent='RECLAMADO'; }
+      } else {
+        lbl.textContent='DISPONIBLE';
+        if (phase==='WAIT') slot.classList.add('locked');
+      }
+    }
+
+    big.classList.remove('is-open','is-full');
+    if (phase==='WAIT'){
+      radar.style.display='block'; mark.style.display='none';
+      var faltan=Math.max(0, CONFIG.LIKES_GOAL - state.likes);
+      big.innerHTML='FALTAN <b>'+faltan+'</b> LIKES';
+      small.textContent='para abrir los '+CONFIG.MAX_SPOTS+' cupos · ¡dale like al vivo!';
+      label.textContent=CONFIG.MAX_SPOTS+' LUGARES';
+      form.classList.add('locked'); btn.disabled=true; btn.classList.remove('open-pulse'); btn.textContent='ESPERANDO META...';
+      inputs.forEach(function(id){ document.getElementById(id).disabled=true; });
+    } else if (phase==='OPEN'){
+      radar.style.display='none'; mark.style.display='flex'; mark.className='wr-mark ok'; mark.textContent='✓';
+      big.textContent='¡CUPOS ABIERTOS!'; big.classList.add('is-open');
+      var quedan=CONFIG.MAX_SPOTS-state.count;
+      small.textContent='Quedan '+quedan+' de '+CONFIG.MAX_SPOTS+' · ¡el que llega primero entra!';
+      label.textContent='QUEDAN '+quedan+' DE '+CONFIG.MAX_SPOTS;
+      if (myPosition===null){
+        form.classList.remove('locked'); btn.disabled=submitting; btn.classList.add('open-pulse');
+        btn.textContent=submitting?'ENVIANDO...':'TOMAR MI LUGAR';
+        inputs.forEach(function(id){ document.getElementById(id).disabled=false; });
+      }
+    } else {
+      radar.style.display='none'; mark.style.display='flex'; mark.className='wr-mark full'; mark.textContent='✕';
+      big.textContent='CUPOS AGOTADOS'; big.classList.add('is-full');
+      small.textContent='Se llenaron los '+CONFIG.MAX_SPOTS+' lugares · atento al próximo stream.';
+      label.textContent='LLENO';
+      form.classList.add('locked'); btn.disabled=true; btn.classList.remove('open-pulse'); btn.textContent='CUPOS AGOTADOS';
+      inputs.forEach(function(id){ document.getElementById(id).disabled=true; });
+    }
+    if (rendered && rendered!==phase){ big.classList.remove('glitch'); void big.offsetWidth; big.classList.add('glitch'); }
+    rendered=phase;
+  }
+
+  function setField(id,msgId,ok,txt){
+    var el=document.getElementById(id), mg=document.getElementById(msgId);
+    el.classList.remove('error','valid');
+    if (ok===true){ el.classList.add('valid'); mg.style.color='#00ff00'; mg.textContent=txt||''; }
+    else if (ok===false){ el.classList.add('error'); mg.style.color='#ff3b3b'; mg.textContent=txt||''; }
+    else { mg.textContent=''; }
+  }
+  function vTelegram(){ var v=document.getElementById('wr-telegram').value.trim(); if(!/^@[a-zA-Z0-9_]{4,}$/.test(v)){setField('wr-telegram','msg-telegram',false,'Empezá con @ (mín. 5 caracteres)');return false;} setField('wr-telegram','msg-telegram',true,''); return true; }
+  function vUID(){ var v=document.getElementById('wr-uid').value.trim(); if(!/^[0-9]{6,}$/.test(v)){setField('wr-uid','msg-uid',false,'El UID es solo números (mín. 6 dígitos)');return false;} setField('wr-uid','msg-uid',true,''); return true; }
+  function vEmail(){ var v=document.getElementById('wr-email').value.trim(); if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)){setField('wr-email','msg-email',false,'Email inválido');return false;} setField('wr-email','msg-email',true,''); return true; }
+  document.getElementById('wr-telegram').addEventListener('input',function(){ if(this.value) vTelegram(); else setField('wr-telegram','msg-telegram',null); });
+  document.getElementById('wr-uid').addEventListener('input',function(){ if(this.value) vUID(); else setField('wr-uid','msg-uid',null); });
+  document.getElementById('wr-email').addEventListener('input',function(){ if(this.value) vEmail(); else setField('wr-email','msg-email',null); });
+
+  function tomarLugar(){
+    if (computePhase()!=='OPEN' || submitting) return;
+    var bottom=document.getElementById('wr-bottom-msg'); bottom.textContent='';
+    var ok = vTelegram() & vUID() & vEmail();
+    if (!ok){ bottom.style.color='#ff3b3b'; bottom.textContent='Revisá los campos marcados.'; return; }
+    submitting=true; render();
+    var payload={ action:'join',
+      exchange:'Bitunix',
+      telegram:document.getElementById('wr-telegram').value.trim(),
+      uid:document.getElementById('wr-uid').value.trim(),
+      email:document.getElementById('wr-email').value.trim(),
+      origen:CONFIG.ORIGEN };
+    if (DEMO){
+      setTimeout(function(){
+        if (state.count>=CONFIG.MAX_SPOTS){ submitting=false; showLose(); return; }
+        state.count++; myPosition=state.count; submitting=false; render(); showWin(myPosition);
+      },700); return;
+    }
+    jsonp(payload).then(function(r){
+      submitting=false;
+      if (r&&r.ok){ myPosition=r.position; state.count=Math.max(state.count,r.position); render(); showWin(r.position); }
+      else if (r&&r.reason==='full'){ showLose(); poll(); }
+      else if (r&&r.reason==='dup'){ bottom.style.color='#ffb000'; bottom.textContent='Ese Telegram o UID ya está anotado.'; render(); }
+      else { bottom.style.color='#ffb000'; bottom.textContent='Todavía no están abiertos los cupos.'; render(); }
+    }).catch(function(){ submitting=false; bottom.style.color='#ff3b3b'; bottom.textContent='Error de conexión. Probá de nuevo.'; render(); });
+  }
+
+  function showWin(pos){
+    var r=document.getElementById('wr-result'); r.className='wr-result win show';
+    document.getElementById('wr-result-big').textContent='¡ENTRASTE!';
+    document.getElementById('wr-result-txt').textContent='Tomaste uno de los lugares. Verificamos tu UID de Bitunix y te llega el acceso por Telegram.';
+    document.getElementById('wr-result-pos').textContent='TU LUGAR · #'+pos;
+  }
+  function showLose(){
+    var r=document.getElementById('wr-result'); r.className='wr-result lose show';
+    document.getElementById('wr-result-big').textContent='SE AGOTARON';
+    document.getElementById('wr-result-txt').textContent='Llegaste un toque tarde, se llenaron los lugares. La próxima estate atento al stream.';
+    document.getElementById('wr-result-pos').textContent='';
+  }
+
+  function poll(){
+    if (DEMO) return;
+    jsonp({ action:'status' }).then(function(r){
+      if (r && typeof r.count!=='undefined'){
+        // Si el backend manda el campo "video": vacío = no hay stream = pantalla offline.
+        // Si NO lo manda (backend viejo), no forzamos offline: se comporta como antes.
+        if (typeof r.video !== 'undefined'){ state.offline = (String(r.video).trim() === ''); }
+        else if (typeof r.live !== 'undefined'){ state.offline = (r.live === false || r.live === 'false'); }
+        else { state.offline = false; }
+        state.gate=r.gate||'WAIT'; state.count=r.count||0; state.likes=r.likes||0;
+        render();
+        if (!state.offline && myPosition!==null) document.getElementById('wr-result').classList.add('show');
+      }
+    }).catch(function(){});
+  }
+
+  render();
+  if (DEMO){
+    var t=setInterval(function(){
+      if (state.likes < CONFIG.LIKES_GOAL){ state.likes=Math.min(CONFIG.LIKES_GOAL, state.likes + (8+Math.floor(Math.random()*10))); render(); }
+      else { clearInterval(t);
+        setTimeout(function(){ if(state.count<1){state.count=1; render();} },3500);
+        setTimeout(function(){ if(state.count<2){state.count=2; render();} },8000);
+      }
+    },900);
+  } else { poll(); setInterval(poll, CONFIG.POLL_MS); }
+</script>
+</body>
+</html>
