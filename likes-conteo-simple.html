@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  /* ── CONFIG ──────────────────────────────────────────────
+     Mismo backend que Cupos Live: lee los likes de la celda L1.
+     ──────────────────────────────────────────────────────── */
+  var CONFIG = {
+    SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxeb5IkiGj7bjIv0_2OT_2nkvQOioJdpht8f7QAnCxMAQ8MmeWbPmsed-hd4oHOlNDUqw/exec',
+    POLL_MS: 5000   // cada cuánto pregunta los likes (el backend los refresca cada ~1 min)
+  };
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; background:transparent; overflow:hidden; }
+  .wrap { width:100%; height:100vh; display:flex; align-items:center; justify-content:center; }
+  .likes {
+    font-family:'Barlow', sans-serif;
+    font-weight:800;
+    color:#2bee34;                 /* tu verde (cambiable por ?color=) */
+    font-size:200px;               /* tamaño base (cambiable por ?size=) */
+    line-height:1;
+    font-variant-numeric:tabular-nums;   /* que no "salte" el ancho al cambiar de número */
+    /* sombra oscura para que se lea sobre cualquier fondo del video + un glow verde sutil */
+    text-shadow:
+      0 3px 12px rgba(0,0,0,.85),
+      0 0 3px rgba(0,0,0,.9),
+      0 0 30px rgba(43,238,52,.35);
+  }
+  .likes.bump { animation: bump .45s cubic-bezier(.2,.8,.2,1); }
+  @keyframes bump { 0%{transform:scale(1)} 38%{transform:scale(1.13)} 100%{transform:scale(1)} }
+  @media (prefers-reduced-motion: reduce){ .likes.bump { animation:none; } }
+</style>
+</head>
+<body>
+  <div class="wrap"><div class="likes" id="likes">0</div></div>
+
+<script>
+  var qs = new URLSearchParams(location.search);
+  var el = document.getElementById('likes');
+  // Ajustes opcionales por URL:  ?size=240  ?color=2bee34
+  if (qs.get('size'))  el.style.fontSize = parseInt(qs.get('size'), 10) + 'px';
+  if (qs.get('color')) el.style.color = '#' + qs.get('color').replace('#','');
+  var DEMO = /[?&]demo=1/.test(location.search);
+
+  var shown = 0;
+  function fmt(n){ return Number(n).toLocaleString('es-AR'); }   // separador de miles con punto
+  function easeOut(p){ return 1 - Math.pow(1 - p, 3); }
+
+  function animateTo(target){
+    target = Number(target) || 0;
+    if (target === shown){ el.textContent = fmt(target); return; }
+    var start = shown, t0 = performance.now(), dur = 700;
+    if (target > start){ el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+    function step(now){
+      var p = Math.min(1, (now - t0) / dur);
+      var val = Math.round(start + (target - start) * easeOut(p));
+      el.textContent = fmt(val);
+      if (p < 1) requestAnimationFrame(step);
+      else { shown = target; }
+    }
+    requestAnimationFrame(step);
+  }
+
+  function jsonp(params){
+    return new Promise(function(resolve, reject){
+      var cb = 'lcb_' + Date.now() + '_' + Math.floor(Math.random()*99999);
+      var s = document.createElement('script'); var done = false;
+      window[cb] = function(data){ done = true; cleanup(); resolve(data); };
+      function cleanup(){ try{ delete window[cb]; }catch(e){ window[cb] = undefined; } if (s.parentNode) s.parentNode.removeChild(s); }
+      params.callback = cb;
+      var q = Object.keys(params).map(function(k){ return encodeURIComponent(k)+'='+encodeURIComponent(params[k]); }).join('&');
+      s.src = CONFIG.SCRIPT_URL + '?' + q;
+      s.onerror = function(){ if(!done){ cleanup(); reject(new Error('net')); } };
+      document.body.appendChild(s);
+      setTimeout(function(){ if(!done){ cleanup(); reject(new Error('timeout')); } }, 9000);
+    });
+  }
+
+  function poll(){
+    jsonp({ action:'status' }).then(function(r){
+      if (r && typeof r.likes !== 'undefined') animateTo(r.likes);
+    }).catch(function(){ /* si falla una vuelta, no pasa nada: reintenta en la próxima */ });
+  }
+
+  if (DEMO){
+    // Previsualización sin stream: los likes suben solos.
+    var v = 0;
+    setInterval(function(){ v += Math.floor(Math.random()*6) + 1; animateTo(v); }, 1400);
+  } else {
+    poll();
+    setInterval(poll, CONFIG.POLL_MS);
+  }
+</script>
+</body>
+</html>
