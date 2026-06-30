@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Precios · Archivo Cripto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080c0a;
+    --surface:#0f1714;
+    --green:#2bee34;
+    --orange:#ff4d1f;
+    --line:rgba(43,238,52,.22);
+    --muted:#6f8278;
+    --text:#e8f3ec;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+
+  html,body{
+    /* Transparente para overlay. Si lo querés con fondo sólido, poné  background:var(--bg);  */
+    background:transparent;
+    font-family:'Barlow Semi Condensed',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    color:var(--text);
+    overflow:hidden;
+  }
+
+  .grid{
+    position:relative;
+    z-index:1;
+    display:flex;
+    flex-wrap:wrap;
+    gap:18px;
+    padding:18px;
+    justify-content:center;
+    align-items:stretch;
+  }
+
+  .card{
+    position:relative;
+    width:280px;
+    min-height:150px;
+    background:linear-gradient(155deg, rgba(15,23,20,.94), rgba(8,12,10,.96));
+    border:1px solid var(--line);
+    padding:16px 18px 14px;
+    overflow:hidden;
+    isolation:isolate;
+  }
+
+  /* Textura matrix sutil de fondo */
+  .card::before{
+    content:"";
+    position:absolute;inset:0;z-index:-1;
+    background-image:
+      linear-gradient(rgba(43,238,52,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(43,238,52,.04) 1px, transparent 1px);
+    background-size:22px 22px;
+    opacity:.6;
+    mask-image:radial-gradient(circle at 70% 30%, #000 0%, transparent 75%);
+  }
+
+  .top{display:flex;align-items:center;gap:10px}
+
+  .icon{
+    width:30px;height:30px;flex:0 0 30px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:50%;
+    background:rgba(43,238,52,.08);
+    border:1px solid var(--line);
+  }
+  .icon svg{width:18px;height:18px}
+
+  .id{display:flex;flex-direction:column;line-height:1}
+  .sym{
+    font-weight:700;font-size:17px;letter-spacing:.5px;
+    text-transform:uppercase;
+  }
+  .name{
+    font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+    color:var(--muted);margin-top:3px;
+  }
+
+  .price{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:46px;line-height:.9;letter-spacing:1px;
+    margin:14px 0 2px;
+    color:var(--text);
+    transition:color .25s ease;
+  }
+  .price .pre{font-size:26px;color:var(--muted);margin-right:2px;vertical-align:top}
+
+  .flash-up{animation:flashUp .5s ease}
+  .flash-down{animation:flashDown .5s ease}
+  @keyframes flashUp{0%{color:var(--green)}100%{color:var(--text)}}
+  @keyframes flashDown{0%{color:var(--orange)}100%{color:var(--text)}}
+
+  .change{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:14px;font-weight:600;letter-spacing:.3px;
+    padding:2px 8px;
+    background:rgba(43,238,52,.1);
+    color:var(--green);
+  }
+  .card.down .change{background:rgba(255,77,31,.14);color:var(--orange)}
+  .change .arrow{font-size:11px}
+  .change .abs{color:var(--muted);font-weight:500}
+
+  /* Sparkline */
+  .spark{position:absolute;left:0;right:0;bottom:0;height:46px;z-index:-1;opacity:.9}
+  .spark svg{width:100%;height:100%;display:block}
+
+  .loading{color:var(--muted);font-size:13px;letter-spacing:1px}
+
+  /* Card Fear & Greed */
+  .card.fng .value{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:46px;line-height:.9;letter-spacing:1px;
+    margin:14px 0 4px;
+    color:var(--text);
+    transition:color .3s ease;
+  }
+  .card.fng .value .max{font-size:22px;color:var(--muted);margin-left:2px}
+  .fng-class{
+    display:inline-block;
+    font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+    padding:2px 8px;
+  }
+  .fng-track{
+    margin-top:14px;height:6px;border-radius:3px;position:relative;
+    background:linear-gradient(90deg,#ff2e00 0%,#ff7a00 28%,#ffe000 50%,#7dff14 72%,#2bee34 100%);
+    opacity:1;
+  }
+  .fng-marker{
+    position:absolute;top:50%;width:3px;height:16px;
+    background:var(--text);border-radius:2px;
+    transform:translate(-50%,-50%);
+    box-shadow:0 0 6px rgba(0,0,0,.6);
+    transition:left .6s ease;
+  }
+
+  @media (max-width:620px){
+    .grid{gap:12px;padding:12px}
+    .card{width:100%;max-width:340px}
+  }
+</style>
+</head>
+<body>
+  <div class="grid" id="grid"></div>
+
+<script>
+/* ===========================================================
+   CONFIG — agregá o sacá monedas acá.
+   sym = id interno | cg = id en CoinGecko | name = nombre que se muestra | icon = clave del set de abajo
+   =========================================================== */
+const COINS = [
+  { sym:"BTCUSDT", cg:"bitcoin",  label:"BTC", name:"Bitcoin",  icon:"btc" },
+  { sym:"ETHUSDT", cg:"ethereum", label:"ETH", name:"Ethereum", icon:"eth" },
+  { sym:"SOLUSDT", cg:"solana",   label:"SOL", name:"Solana",   icon:"sol" },
+  { sym:"XRPUSDT", cg:"ripple",   label:"XRP", name:"Ripple",   icon:"xrp" },
+];
+
+const ICONS = {
+  btc:`<svg viewBox="0 0 32 32" fill="none"><path fill="#f7931a" d="M22.5 14.1c.3-2.1-1.3-3.2-3.5-4l.7-2.9-1.8-.4-.7 2.8-1.4-.3.7-2.8-1.8-.5-.7 2.9-3.6-.9-.5 1.9s1.3.3 1.3.3c.7.2.9.7.8 1l-2 8.2c-.1.2-.4.6-1 .4 0 0-1.3-.3-1.3-.3l-.9 2.1 3.4.8-.7 3 1.8.4.7-2.9 1.4.4-.7 2.9 1.8.4.7-3c3.1.6 5.4.3 6.4-2.4.8-2.2 0-3.5-1.6-4.3 1.1-.3 2-1 2.3-2.6Zm-4.1 5.7c-.5 2.2-4.3 1-5.6.7l1-3.9c1.2.3 5.2.9 4.6 3.2Zm.6-5.8c-.5 2-3.7.9-4.7.7l.9-3.5c1 .2 4.3.7 3.8 2.8Z"/></svg>`,
+  eth:`<svg viewBox="0 0 32 32" fill="none"><path fill="#627eea" d="M16 4 9.5 16.2 16 20l6.5-3.8L16 4Z" opacity=".9"/><path fill="#627eea" d="M16 4 9.5 16.2 16 13.4V4Z" opacity=".6"/><path fill="#627eea" d="m16 21.2-6.5-3.8L16 28l6.5-10.6L16 21.2Z" opacity=".9"/><path fill="#627eea" d="M16 28v-6.8l-6.5-3.8L16 28Z" opacity=".6"/></svg>`,
+  sol:`<svg viewBox="0 0 32 32"><defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00ffa3"/><stop offset="1" stop-color="#dc1fff"/></linearGradient></defs><g fill="url(#sg)"><path d="M9 11.5h13.5l-2.5 2.5H6.5L9 11.5Z"/><path d="M9 16.5h13.5L20 19H6.5L9 16.5Z"/><path d="M9 21.5h13.5L20 24H6.5L9 21.5Z" opacity=".85"/></g></svg>`,
+  xrp:`<svg viewBox="0 0 32 32" fill="none"><path fill="#fff" d="M22.6 8h3.2l-6.3 6.2c-1.9 1.9-5 1.9-6.9 0L6.2 8h3.2l4.7 4.6c.9.9 2.5.9 3.4 0L22.6 8Z M9.4 24H6.2l6.4-6.3c1.9-1.9 5-1.9 6.9 0l6.3 6.3h-3.2l-4.7-4.7c-.9-.9-2.5-.9-3.4 0L9.4 24Z"/></svg>`,
+};
+
+const grid = document.getElementById("grid");
+const state = {};
+
+COINS.forEach(c=>{
+  const card = document.createElement("div");
+  card.className = "card";
+  card.id = "c-"+c.sym;
+  card.innerHTML = `
+    <div class="top">
+      <div class="icon">${ICONS[c.icon]||""}</div>
+      <div class="id"><span class="sym">${c.label}</span><span class="name">${c.name}</span></div>
+    </div>
+    <div class="price loading" id="price-${c.sym}">———</div>
+    <div class="change" id="chg-${c.sym}" style="visibility:hidden">
+      <span class="arrow">▲</span><span class="pct">0.00%</span><span class="abs"></span>
+    </div>
+    <div class="spark" id="spark-${c.sym}"></div>`;
+  grid.appendChild(card);
+  state[c.sym] = { last:null };
+});
+
+/* ===========================================================
+   CARD FEAR & GREED (alternative.me, se actualiza ~1 vez/día)
+   =========================================================== */
+const FNG_ES = {
+  "Extreme Fear":"Miedo Extremo",
+  "Fear":"Miedo",
+  "Neutral":"Neutral",
+  "Greed":"Codicia",
+  "Extreme Greed":"Codicia Extrema",
+};
+const FNG_ICON = `<svg viewBox="0 0 32 32" fill="none"><path d="M6 23 A11 11 0 0 1 26 23" stroke="#2bee34" stroke-width="2.4" stroke-linecap="round" fill="none" opacity=".55"/><line x1="16" y1="23" x2="22.5" y2="15.5" stroke="#2bee34" stroke-width="2.2" stroke-linecap="round"/><circle cx="16" cy="23" r="2" fill="#2bee34"/></svg>`;
+
+(function(){
+  const card = document.createElement("div");
+  card.className = "card fng";
+  card.id = "card-fng";
+  card.innerHTML = `
+    <div class="top">
+      <div class="icon">${FNG_ICON}</div>
+      <div class="id"><span class="sym">Fear &amp; Greed</span><span class="name">Índice del mercado</span></div>
+    </div>
+    <div class="value loading" id="fng-value">——</div>
+    <span class="fng-class" id="fng-class" style="visibility:hidden">———</span>
+    <div class="fng-track"><div class="fng-marker" id="fng-marker" style="left:50%"></div></div>`;
+  grid.appendChild(card);
+})();
+
+function fngColor(v){
+  if(v < 25) return "#ff2e00";
+  if(v < 45) return "#ff7a00";
+  if(v < 55) return "#ffe000";
+  if(v < 75) return "#7dff14";
+  return "#2bee34";
+}
+
+async function loadFNG(){
+  try{
+    const r = await fetch("https://api.alternative.me/fng/?limit=1");
+    const j = await r.json();
+    const d = j.data[0];
+    const v = parseInt(d.value, 10);
+    const col = fngColor(v);
+
+    const valEl = document.getElementById("fng-value");
+    valEl.classList.remove("loading");
+    valEl.innerHTML = `${v}<span class="max">/100</span>`;
+    valEl.style.color = col;
+
+    const clsEl = document.getElementById("fng-class");
+    clsEl.style.visibility = "visible";
+    clsEl.textContent = FNG_ES[d.value_classification] || d.value_classification;
+    clsEl.style.color = col;
+
+    document.getElementById("fng-marker").style.left = v + "%";
+  }catch(e){ /* opcional */ }
+}
+loadFNG();
+setInterval(loadFNG, 300000); // refresca cada 5 minutos
+
+/* ---------- formato de precio (decimales según magnitud) ---------- */
+function fmtPrice(p){
+  let dec = p >= 1000 ? 0 : p >= 1 ? 2 : 4;
+  return p.toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec});
+}
+
+/* ---------- sparkline ---------- */
+function drawSpark(sym, closes, up){
+  const el = document.getElementById("spark-"+sym);
+  if(!closes.length){el.innerHTML="";return;}
+  const w=280,h=46,min=Math.min(...closes),max=Math.max(...closes),range=(max-min)||1;
+  const stepX = w/(closes.length-1);
+  const pts = closes.map((v,i)=>[i*stepX, h-((v-min)/range)*(h-6)-3]);
+  const line = pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+  const area = line+` L${w} ${h} L0 ${h} Z`;
+  const col = up ? "#2bee34" : "#ff4d1f";
+  el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <defs><linearGradient id="g-${sym}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${col}" stop-opacity=".35"/>
+      <stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+    <path d="${area}" fill="url(#g-${sym})"/>
+    <path d="${line}" fill="none" stroke="${col}" stroke-width="1.6" stroke-opacity=".9"/>
+  </svg>`;
+}
+
+/* ---------- update de una card ---------- */
+function update(sym, price, pct, absChange){
+  const card  = document.getElementById("c-"+sym);
+  const pEl    = document.getElementById("price-"+sym);
+  const cEl    = document.getElementById("chg-"+sym);
+  const up = pct >= 0;
+
+  card.classList.toggle("down", !up);
+  pEl.classList.remove("loading");
+
+  // flash según dirección del tick
+  const prev = state[sym].last;
+  if(prev!=null && price!==prev){
+    pEl.classList.remove("flash-up","flash-down");
+    void pEl.offsetWidth;
+    pEl.classList.add(price>prev ? "flash-up":"flash-down");
+  }
+  state[sym].last = price;
+
+  pEl.innerHTML = `<span class="pre">$</span>${fmtPrice(price)}`;
+  cEl.style.visibility = "visible";
+  cEl.querySelector(".arrow").textContent = up ? "▲":"▼";
+  cEl.querySelector(".pct").textContent = (up?"+":"") + pct.toFixed(2) + "%";
+  cEl.querySelector(".abs").textContent = (up?"+":"") + Math.abs(absChange).toLocaleString("en-US",{maximumFractionDigits: price>=1000?0:2});
+}
+
+/* ---------- precios + sparkline desde CoinGecko (sin geobloqueo) ----------
+   Una sola consulta trae precio, cambio 24h y sparkline de las 4 monedas.
+   Se usa polling porque corre desde los servidores de EVmux. */
+async function loadPrices(){
+  try{
+    const ids = COINS.map(c=>c.cg).join(",");
+    const r = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&sparkline=true`);
+    const data = await r.json();
+    const byId = {};
+    data.forEach(d=>{ byId[d.id]=d; });
+
+    COINS.forEach(c=>{
+      const d = byId[c.cg];
+      if(!d) return;
+      update(c.sym, d.current_price, d.price_change_percentage_24h || 0, d.price_change_24h || 0);
+      const sp = (d.sparkline_in_7d && d.sparkline_in_7d.price) ? d.sparkline_in_7d.price : [];
+      if(sp.length){
+        const slice = sp.slice(-48);
+        drawSpark(c.sym, slice, slice[slice.length-1] >= slice[0]);
+      }
+    });
+  }catch(e){ /* reintenta en el próximo ciclo */ }
+}
+loadPrices();
+setInterval(loadPrices, 15000); // actualiza cada 15s
+</script>
+</body>
+</html>
