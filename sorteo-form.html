@@ -67,7 +67,14 @@
   .s-msg { margin-top:10px; text-align:center; font-size:14px; min-height:18px; font-weight:700; }
 
   .s-closed { text-align:center; padding:8px 0 4px; }
-  .s-closed .s-title { color:var(--amber); }
+  .s-closed-title { font-size:24px; font-weight:700; letter-spacing:1px; color:var(--green); text-transform:uppercase; margin-bottom:10px; }
+  .s-closed-title b { color:var(--green); font-weight:700; }
+  .s-loading-txt { font-size:16px; letter-spacing:2px; color:rgba(255,255,255,.4); text-transform:uppercase; padding:14px 0; }
+  .s-check { display:flex; align-items:flex-start; gap:9px; margin-top:16px; font-size:13px; color:rgba(255,255,255,.72); line-height:1.4; cursor:pointer; user-select:none; }
+  .s-check input { width:18px; height:18px; margin-top:1px; accent-color:var(--green); cursor:pointer; flex:0 0 auto; }
+  .s-check a { color:var(--green); text-decoration:none; }
+  .s-check a:hover { text-decoration:underline; }
+  .s-check.error span { color:var(--red); }
   .s-count { text-align:center; font-size:13px; letter-spacing:1px; color:rgba(255,255,255,.5); margin-top:12px; text-transform:uppercase; }
   .s-terms { text-align:center; margin-top:18px; font-size:12px; }
   .s-terms a { color:rgba(255,255,255,.5); text-decoration:none; letter-spacing:.5px; border-bottom:1px solid rgba(255,255,255,.2); transition:color .2s; }
@@ -93,7 +100,7 @@
         <div class="s-content">
           <img class="s-logo" src="https://cdn.jsdelivr.net/gh/javipl79/news@main/logo-archivo.png" alt="Archivo Cripto" />
 
-          <div id="s-open-block">
+          <div id="s-open-block" style="display:none">
             <div class="s-title">SORTEO <b>$500</b></div>
             <div class="s-sub">Dejá tu UID de Bitunix para entrar al sorteo del bono de USD 500. 1 participación por persona.</div>
 
@@ -108,14 +115,22 @@
               <a class="s-uid-help" href="https://youtu.be/9zV7ucxv77g" target="_blank" rel="noopener">¿Qué es un UID y cómo lo consigo? →</a>
             </div>
 
+            <label class="s-check" id="s-check-wrap">
+              <input type="checkbox" id="s-check" />
+              <span>Leí y acepto los <a href="https://www.archivocripto.com/terminosbonos" target="_blank" rel="noopener">términos y condiciones</a> del sorteo.</span>
+            </label>
+
             <button class="s-btn" id="s-btn" onclick="enviar()">ENTRAR AL SORTEO</button>
             <div class="s-msg" id="s-msg"></div>
             <div class="s-count" id="s-count"></div>
-            <div class="s-terms"><a href="https://www.archivocripto.com/terminosbonos" target="_blank" rel="noopener">Términos y condiciones del sorteo</a></div>
+          </div>
+
+          <div id="s-loading-block" class="s-closed">
+            <div class="s-loading-txt">Cargando…</div>
           </div>
 
           <div id="s-closed-block" class="s-closed" style="display:none">
-            <div class="s-title">INSCRIPCIONES <b style="color:var(--amber)">CERRADAS</b></div>
+            <div class="s-closed-title">Inscripciones <b>cerradas</b></div>
             <div class="s-sub" style="margin-bottom:0">El sorteo no está abierto en este momento. Atento al próximo stream para participar.</div>
             <div class="s-count" id="s-count-closed"></div>
           </div>
@@ -132,7 +147,7 @@
 <script>
   var DEMO = CONFIG.SCRIPT_URL.indexOf('PEGA_ACA') !== -1;
   var state = { abierto:false, count:0 };
-  var enviado = false, submitting = false;
+  var enviado = false, submitting = false, cargado = false;
 
   document.getElementById('s-ref-btn').href = CONFIG.BITUNIX_REF;
 
@@ -154,8 +169,14 @@
   function render(){
     var openB=document.getElementById('s-open-block');
     var closedB=document.getElementById('s-closed-block');
+    var loadB=document.getElementById('s-loading-block');
     var btn=document.getElementById('s-btn');
     var input=document.getElementById('s-uid');
+    if (!cargado){
+      loadB.style.display='block'; openB.style.display='none'; closedB.style.display='none';
+      return;
+    }
+    loadB.style.display='none';
     if (state.abierto){
       openB.style.display=''; closedB.style.display='none';
       if (!enviado){ btn.disabled=submitting; btn.textContent=submitting?'ENVIANDO...':'ENTRAR AL SORTEO'; input.disabled=submitting; }
@@ -169,9 +190,11 @@
   function enviar(){
     if (!state.abierto || enviado || submitting) return;
     var input=document.getElementById('s-uid'), msg=document.getElementById('s-msg');
+    var chk=document.getElementById('s-check'), chkWrap=document.getElementById('s-check-wrap');
     var uid=input.value.trim();
-    input.classList.remove('error'); msg.textContent='';
+    input.classList.remove('error'); chkWrap.classList.remove('error'); msg.textContent='';
     if (!/^[0-9]{4,}$/.test(uid)){ input.classList.add('error'); msg.style.color='#ff3b3b'; msg.textContent='Ingresá tu UID (solo números).'; return; }
+    if (!chk.checked){ chkWrap.classList.add('error'); msg.style.color='#ff3b3b'; msg.textContent='Tenés que aceptar los términos y condiciones.'; return; }
     submitting=true; render();
     if (DEMO){ setTimeout(function(){ submitting=false; enviado=true; showOk(); },700); return; }
     jsonp({ action:'join', uid:uid, origen:CONFIG.ORIGEN }).then(function(r){
@@ -186,9 +209,9 @@
   function showOk(){ document.getElementById('s-result').classList.add('show'); }
 
   function poll(){
-    if (DEMO){ state.abierto=true; render(); return; }
+    if (DEMO){ cargado=true; state.abierto=true; render(); return; }
     jsonp({ action:'status' }).then(function(r){
-      if (r && typeof r.abierto!=='undefined'){ state.abierto=!!r.abierto; state.count=r.count||0; render(); }
+      if (r && typeof r.abierto!=='undefined'){ cargado=true; state.abierto=!!r.abierto; state.count=r.count||0; render(); }
     }).catch(function(){});
   }
 
