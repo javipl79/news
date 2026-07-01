@@ -22,7 +22,7 @@
   body { background:#000; font-family:'Arial Narrow','Roboto Condensed',Helvetica,Arial,sans-serif; }
   .s-section { width:100%; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px 12px; }
   .s-inner { width:100%; max-width:520px; margin:0 auto; }
-  .s-logo { display:block; margin:0 auto 16px; width:150px; height:auto; }
+  .s-logo { display:block; margin:0 auto 26px; width:150px; height:auto; }
   .s-wrap { position:relative; border-radius:3px; padding:2px; }
   .s-wrap::before {
     content:''; position:absolute; inset:0; border-radius:3px; padding:2px;
@@ -32,7 +32,7 @@
   }
   @property --angle { syntax:'<angle>'; initial-value:0deg; inherits:false; }
   @keyframes rot { to { --angle:360deg; } }
-  .s-panel { position:relative; overflow:hidden; border-radius:2px; padding:26px 26px 24px; background:#0a100d; border:1px solid rgba(43,238,52,.12); }
+  .s-panel { position:relative; overflow:hidden; border-radius:2px; padding:36px 34px 34px; background:#0a100d; border:1px solid rgba(43,238,52,.12); }
   .s-panel::after { content:''; position:absolute; inset:0; pointer-events:none; opacity:.5;
     background:repeating-linear-gradient(0deg, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.10) 3px, rgba(0,0,0,0) 4px); }
   .s-content { position:relative; z-index:2; }
@@ -43,25 +43,25 @@
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
   .s-brand { font-weight:700; letter-spacing:3px; font-size:13px; color:var(--green); opacity:.85; text-transform:uppercase; }
 
-  .s-title { font-size:40px; font-weight:700; line-height:1; letter-spacing:1px; color:#fff; margin:10px 0 4px; text-transform:uppercase; }
+  .s-title { font-size:40px; font-weight:700; line-height:1; letter-spacing:1px; color:#fff; margin:0 0 10px; text-transform:uppercase; }
   .s-title b { color:var(--green); font-weight:700; }
-  .s-sub { font-size:15px; color:rgba(255,255,255,.72); line-height:1.4; margin-bottom:18px; }
+  .s-sub { font-size:15px; color:rgba(255,255,255,.72); line-height:1.5; margin-bottom:24px; }
 
-  .s-ref { font-size:13px; color:rgba(255,255,255,.7); line-height:1.5; margin-bottom:16px; padding:10px 12px; border-left:2px solid rgba(43,238,52,.6); background:rgba(43,238,52,.05); }
-  .s-ref-btn { display:inline-block; margin-top:8px; padding:10px 16px; background:transparent; border:1px solid var(--green); color:var(--green); text-decoration:none; font-weight:700; letter-spacing:1px; font-size:13px; border-radius:5px; text-transform:uppercase; transition:all .2s; }
+  .s-ref { font-size:13.5px; color:rgba(255,255,255,.78); line-height:1.6; margin-bottom:26px; padding:16px 16px; border-left:3px solid var(--green); background:rgba(43,238,52,.05); border-radius:0 4px 4px 0; }
+  .s-ref-btn { display:inline-block; margin-top:14px; padding:11px 18px; background:transparent; border:1px solid var(--green); color:var(--green); text-decoration:none; font-weight:700; letter-spacing:1px; font-size:13px; border-radius:5px; text-transform:uppercase; transition:all .2s; }
   .s-ref-btn:hover { background:var(--green); color:#000; }
 
-  .s-field { display:flex; flex-direction:column; gap:5px; margin-bottom:6px; }
-  .s-label { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.65); }
+  .s-field { display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
+  .s-label { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.65); margin-bottom:2px; }
   .s-input { width:100%; padding:13px 15px; background:rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.25); color:#fff; font-family:inherit; font-size:16px; outline:none; border-radius:4px; transition:border-color .15s; }
   .s-input:focus { border-color:var(--green); }
   .s-input::placeholder { color:rgba(255,255,255,.32); }
   .s-input.error { border-color:var(--red)!important; }
   .s-input:disabled { opacity:.5; cursor:not-allowed; }
-  .s-uid-help { display:inline-block; margin-top:4px; font-size:12px; color:var(--green); text-decoration:none; opacity:.85; }
+  .s-uid-help { display:inline-block; margin-top:8px; font-size:12px; color:var(--green); text-decoration:none; opacity:.85; }
   .s-uid-help:hover { opacity:1; text-decoration:underline; }
 
-  .s-btn { display:block; width:100%; padding:15px; margin-top:14px; background:var(--green); border:none; color:#000; font-family:inherit; font-size:16px; font-weight:700; letter-spacing:2px; text-transform:uppercase; cursor:pointer; border-radius:6px; transition:all .2s; }
+  .s-btn { display:block; width:100%; padding:16px; margin-top:22px; background:var(--green); border:none; color:#000; font-family:inherit; font-size:16px; font-weight:700; letter-spacing:2px; text-transform:uppercase; cursor:pointer; border-radius:6px; transition:all .2s; }
   .s-btn:hover:not(:disabled) { background:#001a00; color:var(--green); box-shadow:0 0 22px 6px rgba(43,238,52,.30); }
   .s-btn:disabled { background:rgba(255,255,255,.10); color:rgba(255,255,255,.45); cursor:not-allowed; }
   .s-msg { margin-top:10px; text-align:center; font-size:14px; min-height:18px; font-weight:700; }
@@ -69,6 +69,9 @@
   .s-closed { text-align:center; padding:8px 0 4px; }
   .s-closed .s-title { color:var(--amber); }
   .s-count { text-align:center; font-size:13px; letter-spacing:1px; color:rgba(255,255,255,.5); margin-top:12px; text-transform:uppercase; }
+  .s-terms { text-align:center; margin-top:18px; font-size:12px; }
+  .s-terms a { color:rgba(255,255,255,.5); text-decoration:none; letter-spacing:.5px; border-bottom:1px solid rgba(255,255,255,.2); transition:color .2s; }
+  .s-terms a:hover { color:var(--green); border-color:var(--green); }
 
   .s-result { position:absolute; inset:0; z-index:5; background:rgba(0,0,0,.94); display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:30px; }
   .s-result.show { display:flex; animation:fade .3s ease; }
@@ -77,7 +80,7 @@
   .s-result-txt { color:rgba(255,255,255,.85); font-size:15px; line-height:1.6; max-width:320px; }
 
   @media (max-width:480px){
-    .s-panel { padding:20px 16px 18px; }
+    .s-panel { padding:26px 20px 24px; }
     .s-title { font-size:32px; }
   }
 </style>
@@ -108,6 +111,7 @@
             <button class="s-btn" id="s-btn" onclick="enviar()">ENTRAR AL SORTEO</button>
             <div class="s-msg" id="s-msg"></div>
             <div class="s-count" id="s-count"></div>
+            <div class="s-terms"><a href="https://www.archivocripto.com/terminosbonos" target="_blank" rel="noopener">Términos y condiciones del sorteo</a></div>
           </div>
 
           <div id="s-closed-block" class="s-closed" style="display:none">
