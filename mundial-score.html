@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mundial · Scorebug · Archivo Cripto</title>
+
+<!-- ============================================================
+     SCOREBUG MUNDIAL — Archivo Cripto
+     Para EVmux (web source) / GitHub Pages.
+     Fondo transparente: se compone sobre tu video.
+
+     FUENTE DE DATOS:
+       Poll automático al scoreboard público de ESPN (sin API key,
+       CORS habilitado). Busca el partido por equipo y actualiza
+       marcador + minuto solo. Si la API falla, mantiene el último
+       valor y podés manejar todo a mano (ver ATAJOS).
+
+     PARÁMETROS (querystring):
+       ?team=Spain        equipo a seguir (default: Spain)
+       ?league=fifa.world liga ESPN (default: fifa.world)
+       ?auto=0            desactiva el poll (100% manual)
+       ?poll=20           segundos entre consultas (default: 20)
+       ?pos=bottom-left   posición: bottom-left|bottom-right|top-left|top-right
+       ?scale=1           tamaño (0.8, 1.2, etc.)
+       ?tag=MUNDIAL 2026  texto del encabezado
+       ?debug=1           muestra estado/atajos (NO usar al aire)
+       Overrides manuales iniciales:
+       ?h=ESP&a=AUT&hs=1&as=0&min=36&status=live
+
+     ATAJOS DE TECLADO (por si la API se atrasa un gol — invisibles al aire):
+       Q / A  -> local +1 / -1
+       P / L  -> visitante +1 / -1
+       [ / ]  -> minuto -1 / +1
+       espacio-> cambia estado (LIVE -> ENTRETIEMPO -> FINAL -> PREVIA)
+       M      -> congela el modo manual (deja de escuchar la API)
+       R      -> re-sincroniza con la API (vuelve a automático)
+     ============================================================ -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --verde:#2bee34;
+    --bg1:#0f1714;
+    --bg2:#080c0a;
+    --scale:1;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+
+  html,body{
+    background:transparent;   /* clave para EVmux */
+    overflow:hidden;
+    font-family:'Barlow Semi Condensed','Arial Narrow',system-ui,sans-serif;
+  }
+
+  /* ---- posición en la esquina ---- */
+  #wrap{
+    position:fixed;
+    transform:scale(var(--scale));
+  }
+  #wrap.bottom-left { bottom:32px; left:32px;  transform-origin:bottom left; }
+  #wrap.bottom-right{ bottom:32px; right:32px; transform-origin:bottom right; }
+  #wrap.top-left    { top:32px;    left:32px;  transform-origin:top left; }
+  #wrap.top-right   { top:32px;    right:32px; transform-origin:top right; }
+
+  /* ---- tarjeta ---- */
+  .bug{
+    background:linear-gradient(150deg, rgba(15,23,20,.94), rgba(8,12,10,.96));
+    border:1px solid rgba(43,238,52,.28);
+    border-radius:14px;
+    box-shadow:0 10px 30px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.02);
+    overflow:hidden;
+    min-width:270px;
+    backdrop-filter:blur(2px);
+  }
+
+  /* franja verde superior */
+  .accent{ height:3px; background:linear-gradient(90deg, var(--verde), rgba(43,238,52,0)); }
+
+  /* encabezado: LIVE + minuto + tag */
+  .head{
+    display:flex; align-items:center; gap:8px;
+    padding:7px 14px 4px;
+  }
+  .live{
+    display:inline-flex; align-items:center; gap:6px;
+    font-weight:700; font-size:12px; letter-spacing:.14em;
+    color:var(--verde); text-transform:uppercase;
+  }
+  .dot{
+    width:8px; height:8px; border-radius:50%;
+    background:var(--verde); box-shadow:0 0 8px var(--verde);
+    animation:breathe 1.6s ease-in-out infinite;
+  }
+  .live.off .dot{ background:#6b7a72; box-shadow:none; animation:none; }
+  .live.off{ color:#8a998f; }
+  .min{ font-weight:700; font-size:12px; letter-spacing:.06em; color:#cfe9d4; }
+  .tag{
+    margin-left:auto; font-weight:600; font-size:10px; letter-spacing:.18em;
+    color:#7d8c82; text-transform:uppercase;
+  }
+
+  @keyframes breathe{
+    0%,100%{ opacity:1;   transform:scale(1); }
+    50%    { opacity:.45; transform:scale(.82); }
+  }
+
+  /* fila del marcador */
+  .row{
+    display:grid;
+    grid-template-columns:auto 1fr auto;
+    align-items:center;
+    gap:12px;
+    padding:2px 14px 12px;
+  }
+  .side{ display:flex; align-items:center; gap:9px; }
+  .side.away{ flex-direction:row-reverse; }
+
+  .flag{
+    width:30px; height:21px; border-radius:4px;
+    box-shadow:0 0 0 1px rgba(255,255,255,.12), 0 2px 5px rgba(0,0,0,.4);
+    display:block;
+  }
+  .abbr{
+    font-family:'Bebas Neue','Arial Narrow',sans-serif;
+    font-size:26px; line-height:1; letter-spacing:.02em;
+    color:#eafff0;
+  }
+
+  .score{
+    display:flex; align-items:center; gap:9px;
+    font-family:'Bebas Neue','Arial Narrow',sans-serif;
+  }
+  .num{
+    font-size:44px; line-height:.85; min-width:30px; text-align:center;
+    color:var(--verde);
+    text-shadow:0 0 14px rgba(43,238,52,.55);
+    transition:transform .12s ease;
+  }
+  .num.flash{ animation:goal .7s ease; }
+  @keyframes goal{
+    0%{ transform:scale(1); }
+    30%{ transform:scale(1.45); text-shadow:0 0 26px rgba(43,238,52,.95); }
+    100%{ transform:scale(1); }
+  }
+  .sep{ font-size:34px; color:#4a5a50; line-height:.85; }
+
+  /* debug */
+  #debug{
+    position:fixed; bottom:6px; left:8px;
+    font:11px/1.4 monospace; color:#2bee34;
+    background:rgba(0,0,0,.6); padding:6px 9px; border-radius:6px;
+    max-width:340px; white-space:pre-wrap; display:none;
+  }
+</style>
+</head>
+<body>
+
+<div id="wrap">
+  <div class="bug">
+    <div class="accent"></div>
+    <div class="head">
+      <span class="live" id="livePill"><span class="dot"></span><span id="liveTxt">LIVE</span></span>
+      <span class="min" id="minTxt"></span>
+      <span class="tag" id="tagTxt">MUNDIAL 2026</span>
+    </div>
+    <div class="row">
+      <div class="side home">
+        <span class="flag" id="flagH"></span>
+        <span class="abbr" id="abbrH">ESP</span>
+      </div>
+      <div class="score">
+        <span class="num" id="numH">–</span>
+        <span class="sep">-</span>
+        <span class="num" id="numA">–</span>
+      </div>
+      <div class="side away">
+        <span class="flag" id="flagA"></span>
+        <span class="abbr" id="abbrA">AUT</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="debug"></div>
+
+<script>
+(function(){
+  "use strict";
+  const P = new URLSearchParams(location.search);
+  const TEAM   = P.get('team')   || 'Spain';
+  const LEAGUE = P.get('league') || 'fifa.world';
+  const POLL   = Math.max(8, parseInt(P.get('poll')||'20',10))*1000;
+  const AUTO0  = P.get('auto') !== '0';
+  const POS    = P.get('pos')    || 'bottom-left';
+  const SCALE  = P.get('scale')  || '1';
+  const DEBUG  = P.get('debug') === '1';
+
+  document.getElementById('wrap').className = POS;
+  document.documentElement.style.setProperty('--scale', SCALE);
+  if (P.get('tag')) document.getElementById('tagTxt').textContent = P.get('tag');
+  if (DEBUG) document.getElementById('debug').style.display = 'block';
+
+  // -------- banderas SVG (sin imágenes externas) --------
+  const FLAGS = {
+    ESP: `<svg class="flag" viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg">
+            <rect width="30" height="20" fill="#c60b1e"/>
+            <rect y="5" width="30" height="10" fill="#ffc400"/>
+          </svg>`,
+    AUT: `<svg class="flag" viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg">
+            <rect width="30" height="20" fill="#ed2939"/>
+            <rect y="6.67" width="30" height="6.66" fill="#ffffff"/>
+          </svg>`,
+    AUS: `<svg class="flag" viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg">
+            <rect width="30" height="20" fill="#00247d"/>
+            <rect width="15" height="10" fill="#00247d"/>
+            <path d="M0,0 L15,10 M15,0 L0,10" stroke="#fff" stroke-width="2"/>
+            <path d="M0,0 L15,10 M15,0 L0,10" stroke="#cf142b" stroke-width="1"/>
+            <path d="M7.5,0 V10 M0,5 H15" stroke="#fff" stroke-width="3"/>
+            <path d="M7.5,0 V10 M0,5 H15" stroke="#cf142b" stroke-width="1.6"/>
+            <circle cx="22" cy="14" r="1.6" fill="#fff"/>
+            <circle cx="26" cy="6"  r="1.2" fill="#fff"/>
+            <circle cx="20" cy="6"  r="1.2" fill="#fff"/>
+            <circle cx="24" cy="17" r="1"   fill="#fff"/>
+          </svg>`
+  };
+  function flagFor(abbr){
+    return FLAGS[abbr] || `<svg class="flag" viewBox="0 0 30 20"><rect width="30" height="20" fill="#243029"/><text x="15" y="14" font-size="9" fill="#2bee34" text-anchor="middle" font-family="Arial">${abbr}</text></svg>`;
+  }
+
+  // -------- estado --------
+  let manual = !AUTO0;          // si arranca en auto=0, ya está en manual
+  let st = {
+    h:  P.get('h')  || 'ESP',
+    a:  P.get('a')  || 'AUT',
+    hs: P.get('hs') != null ? +P.get('hs') : null,
+    as: P.get('as') != null ? +P.get('as') : null,
+    min: P.get('min') || '',
+    status: P.get('status') || 'live'  // live | ht | final | pre
+  };
+
+  const el = {
+    numH:document.getElementById('numH'), numA:document.getElementById('numA'),
+    abbrH:document.getElementById('abbrH'), abbrA:document.getElementById('abbrA'),
+    flagH:document.getElementById('flagH'), flagA:document.getElementById('flagA'),
+    min:document.getElementById('minTxt'), liveTxt:document.getElementById('liveTxt'),
+    livePill:document.getElementById('livePill'), dbg:document.getElementById('debug')
+  };
+  let prev = {hs:null, as:null};
+
+  function setFlag(node, abbr){ node.outerHTML = flagFor(abbr).replace('<svg','<svg id="'+node.id+'"'); }
+
+  function render(){
+    el.abbrH.textContent = st.h;
+    el.abbrA.textContent = st.a;
+    document.getElementById('flagH').outerHTML = flagFor(st.h).replace('<svg','<svg id="flagH"');
+    document.getElementById('flagA').outerHTML = flagFor(st.a).replace('<svg','<svg id="flagA"');
+
+    el.numH.textContent = st.hs==null ? '–' : st.hs;
+    el.numA.textContent = st.as==null ? '–' : st.as;
+    if (prev.hs!=null && st.hs>prev.hs) flashGoal(el.numH);
+    if (prev.as!=null && st.as>prev.as) flashGoal(el.numA);
+    prev = {hs:st.hs, as:st.as};
+
+    // estado
+    let label='LIVE', off=false, minShow=st.min?String(st.min).replace(/'+$/,'')+"'":'';
+    if(st.status==='ht'){ label='ENTRETIEMPO'; minShow=''; }
+    else if(st.status==='final'){ label='FINAL'; off=true; minShow=''; }
+    else if(st.status==='pre'){ label='PREVIA'; off=true; minShow=st.min||''; }
+    el.liveTxt.textContent=label;
+    el.min.textContent=minShow;
+    el.livePill.classList.toggle('off', off);
+
+    if(DEBUG){
+      el.dbg.textContent =
+        `modo: ${manual?'MANUAL (M para congelar / R para auto)':'AUTO'}\n`+
+        `${st.h} ${st.hs} - ${st.as} ${st.a}  ${st.status} ${st.min}\n`+
+        `Q/A local±  ·  P/L visita±  ·  [ ] minuto  ·  espacio estado  ·  R resync`;
+    }
+  }
+  function flashGoal(node){ node.classList.remove('flash'); void node.offsetWidth; node.classList.add('flash'); }
+
+  // -------- fetch ESPN --------
+  async function fetchLive(){
+    if(manual) return;
+    try{
+      const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${LEAGUE}/scoreboard`;
+      const r = await fetch(url, {cache:'no-store'});
+      const j = await r.json();
+      const q = TEAM.toLowerCase();
+      const ev = (j.events||[]).find(e=>{
+        const c = e.competitions?.[0]?.competitors||[];
+        return c.some(x=>(x.team?.displayName||'').toLowerCase().includes(q)
+                      || (x.team?.abbreviation||'').toLowerCase()===q)
+            || (e.name||'').toLowerCase().includes(q)
+            || (e.shortName||'').toLowerCase().includes(q);
+      });
+      if(!ev) return;
+      const comp = ev.competitions[0];
+      const H = comp.competitors.find(c=>c.homeAway==='home');
+      const A = comp.competitors.find(c=>c.homeAway==='away');
+      st.h  = H.team.abbreviation || st.h;
+      st.a  = A.team.abbreviation || st.a;
+      st.hs = +H.score;
+      st.as = +A.score;
+      const s = ev.status;
+      const state = s?.type?.state;               // pre | in | post
+      const detail= (s?.type?.description||'').toLowerCase();
+      if(state==='in'){
+        st.status = detail.includes('half')&&detail.includes('time') ? 'ht' : 'live';
+        st.min = s.displayClock || (s.period? (s.period+'ºT'):'');
+      } else if(state==='post'){ st.status='final'; }
+      else { st.status='pre'; st.min = new Date(ev.date).toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'}); }
+      render();
+    }catch(err){ if(DEBUG) console.warn('ESPN fetch fail', err); }
+  }
+
+  // -------- controles manuales --------
+  function bump(k, d){
+    manual = true;
+    if(k==='hs'){ st.hs = Math.max(0,(st.hs||0)+d); }
+    if(k==='as'){ st.as = Math.max(0,(st.as||0)+d); }
+    if(k==='min'){ let n=parseInt(st.min)||0; st.min = Math.max(0,n+d)+"'"; }
+    render();
+  }
+  const STATUSES=['live','ht','final','pre'];
+  window.addEventListener('keydown', e=>{
+    switch(e.key.toLowerCase()){
+      case 'q': bump('hs',+1); break;
+      case 'a': bump('hs',-1); break;
+      case 'p': bump('as',+1); break;
+      case 'l': bump('as',-1); break;
+      case '[': bump('min',-1); break;
+      case ']': bump('min',+1); break;
+      case ' ': manual=true; st.status=STATUSES[(STATUSES.indexOf(st.status)+1)%STATUSES.length]; render(); e.preventDefault(); break;
+      case 'm': manual=true; render(); break;
+      case 'r': manual=false; fetchLive(); render(); break;
+    }
+  });
+
+  // -------- init --------
+  render();
+  if(AUTO0){ fetchLive(); setInterval(fetchLive, POLL); }
+})();
+</script>
+</body>
+</html>
