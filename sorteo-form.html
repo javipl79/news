@@ -7,7 +7,7 @@
      Pegá tu URL /exec del Apps Script del SORTEO (no el de Cupos).
      ──────────────────────────────────────────────────────── */
   var CONFIG = {
-    SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxNqC4AnIfRNDzQoaD2pwDEU-Y1snB0t0sUpV4X8q2M3XRB9kKYpMdMVoltFvGwf37e8A/exec',
+    SCRIPT_URL: 'Phttps://script.google.com/macros/s/AKfycbxNqC4AnIfRNDzQoaD2pwDEU-Y1snB0t0sUpV4X8q2M3XRB9kKYpMdMVoltFvGwf37e8A/exec',
     BITUNIX_REF: 'https://www.bitunix.com/register?vipCode=archivo',
     ORIGEN: 'SORTEO 500',
     POLL_MS: 4000
@@ -47,18 +47,25 @@
   .s-title b { color:var(--green); font-weight:700; }
   .s-sub { font-size:15px; color:rgba(255,255,255,.72); line-height:1.5; margin-bottom:34px; text-align:center; }
 
-  .s-ref { font-size:13.5px; color:rgba(255,255,255,.78); line-height:1.6; margin-bottom:34px; padding:18px 18px; border-left:3px solid var(--green); background:rgba(43,238,52,.05); border-radius:0 4px 4px 0; }
-  .s-ref-btn { display:block; width:fit-content; margin-top:14px; padding:11px 18px; background:transparent; border:1px solid var(--green); color:var(--green); text-decoration:none; font-weight:700; letter-spacing:1px; font-size:13px; border-radius:5px; text-transform:uppercase; transition:all .2s; }
+  .s-ref { display:flex; align-items:center; gap:10px; position:relative; margin-bottom:34px; }
+  .s-ref-btn { display:inline-block; padding:13px 20px; background:transparent; border:1px solid var(--green); color:var(--green); text-decoration:none; font-weight:700; letter-spacing:1px; font-size:15px; border-radius:5px; text-transform:uppercase; transition:all .2s; }
   .s-ref-btn:hover { background:var(--green); color:#000; }
+  .s-help-btn { flex:0 0 auto; width:28px; height:28px; border-radius:50%; border:1px solid rgba(255,255,255,.35); background:transparent; color:rgba(255,255,255,.7); font-size:15px; font-weight:700; cursor:pointer; line-height:1; transition:all .2s; }
+  .s-help-btn:hover, .s-help-btn.active { border-color:var(--green); color:var(--green); }
+  .s-help-pop { display:none; position:absolute; left:0; right:0; top:calc(100% + 10px); z-index:10;
+    background:#0d1512; border:1px solid rgba(43,238,52,.4); border-radius:8px; padding:14px 16px;
+    font-size:14px; line-height:1.55; color:rgba(255,255,255,.82); box-shadow:0 8px 30px rgba(0,0,0,.5); }
+  .s-help-pop.show { display:block; }
+  .s-help-pop b { color:var(--green); }
 
   .s-field { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
-  .s-label { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.65); margin-bottom:2px; }
-  .s-input { width:100%; padding:13px 15px; background:rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.25); color:#fff; font-family:inherit; font-size:16px; outline:none; border-radius:4px; transition:border-color .15s; }
+  .s-label { font-size:13px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.7); margin-bottom:3px; }
+  .s-input { width:100%; padding:14px 16px; background:rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.25); color:#fff; font-family:inherit; font-size:17px; outline:none; border-radius:4px; transition:border-color .15s; }
   .s-input:focus { border-color:var(--green); }
   .s-input::placeholder { color:rgba(255,255,255,.32); }
   .s-input.error { border-color:var(--red)!important; }
   .s-input:disabled { opacity:.5; cursor:not-allowed; }
-  .s-uid-help { display:inline-block; margin-top:8px; font-size:12px; color:var(--green); text-decoration:none; opacity:.85; }
+  .s-uid-help { display:inline-block; margin-top:9px; font-size:14px; color:var(--green); text-decoration:none; opacity:.9; }
   .s-uid-help:hover { opacity:1; text-decoration:underline; }
 
   .s-btn { display:block; width:100%; padding:16px; margin-top:28px; background:var(--green); border:none; color:#000; font-family:inherit; font-size:16px; font-weight:700; letter-spacing:2px; text-transform:uppercase; cursor:pointer; border-radius:6px; transition:all .2s; }
@@ -105,8 +112,11 @@
             <div class="s-sub">Dejá tu UID de Bitunix para entrar al sorteo del bono de USD 500. 1 participación por persona.</div>
 
             <div class="s-ref">
-              <strong style="color:var(--green)">Importante:</strong> para participar, tu cuenta de Bitunix tiene que estar creada con mi código de referido <strong style="color:var(--green)">"archivo"</strong>. <strong>Solo las cuentas creadas con este link entran al sorteo.</strong>
               <a class="s-ref-btn" id="s-ref-btn" href="#" target="_blank" rel="noopener">Crear cuenta en Bitunix (código: archivo)</a>
+              <button type="button" class="s-help-btn" id="s-help-btn" onclick="toggleAyuda(event)" aria-label="Más información">?</button>
+              <div class="s-help-pop" id="s-help-pop">
+                Para participar, tu cuenta de Bitunix tiene que estar creada con el código de referido <b>"archivo"</b>. Solo las cuentas creadas con ese link entran al sorteo.
+              </div>
             </div>
 
             <div class="s-field">
@@ -118,7 +128,7 @@
             <div class="s-field">
               <label class="s-label">E-mail</label>
               <input class="s-input" id="s-email" type="email" inputmode="email" autocomplete="email" placeholder="tucorreo@ejemplo.com" />
-              <span class="s-uid-help" style="color:rgba(255,255,255,.5)">Para recibir tu invitación a War Room si resultás ganador.</span>
+              <span class="s-uid-help" style="color:rgba(255,255,255,.65)">Para recibir tu invitación a War Room si resultás ganador.</span>
             </div>
 
             <label class="s-check" id="s-check-wrap">
@@ -156,6 +166,18 @@
   var enviado = false, submitting = false, cargado = false;
 
   document.getElementById('s-ref-btn').href = CONFIG.BITUNIX_REF;
+
+  function toggleAyuda(e){
+    e.preventDefault(); e.stopPropagation();
+    var pop=document.getElementById('s-help-pop'), btn=document.getElementById('s-help-btn');
+    var abierto=pop.classList.toggle('show'); btn.classList.toggle('active', abierto);
+  }
+  document.addEventListener('click', function(e){
+    var pop=document.getElementById('s-help-pop'), btn=document.getElementById('s-help-btn');
+    if (pop && pop.classList.contains('show') && !pop.contains(e.target) && e.target!==btn){
+      pop.classList.remove('show'); btn.classList.remove('active');
+    }
+  });
 
   function jsonp(params){
     return new Promise(function(resolve, reject){
