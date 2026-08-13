@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pulso · Enviar a War Room</title>
+<script>
+  /* ── CONFIG ──────────────────────────────────────────────
+     API_BASE = la URL pública del túnel del motor (la misma por donde
+     el Pulso lee /news-data desde afuera). SIN barra final.
+     Ej: 'https://noticias.archivocripto.app'
+     ──────────────────────────────────────────────────────── */
+  var CONFIG = {
+    API_BASE: 'https://noticias.archivocripto.app'
+  };
+</script>
+<style>
+  :root{ --green:#2bee34; --g-hi:#8dff93; --g-deep:#17a821; --red:#ff5252; --amber:#ffb000;
+         --bg:#080c0a; --panel:#0f1714; --line:rgba(43,238,52,.14); }
+  *{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body{ background:var(--bg); color:#eaf3ee; font-family:'Barlow',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+    min-height:100vh; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:640px; margin:0 auto; padding:16px 14px 40px; }
+
+  header{ display:flex; align-items:center; justify-content:space-between; padding:8px 2px 16px; position:sticky; top:0; background:var(--bg); z-index:20; border-bottom:1px solid var(--line); }
+  .brand{ font-weight:800; letter-spacing:1px; font-size:19px; text-transform:uppercase; }
+  .brand b{ color:var(--green); }
+  .brand small{ display:block; font-size:11px; letter-spacing:2px; color:rgba(255,255,255,.45); font-weight:600; }
+  .hbtn{ background:transparent; border:1px solid rgba(255,255,255,.2); color:rgba(255,255,255,.7); border-radius:8px; padding:8px 12px; font-size:13px; font-family:inherit; cursor:pointer; }
+  .hbtn:active{ background:rgba(255,255,255,.06); }
+
+  /* login */
+  .login{ min-height:70vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; text-align:center; padding:20px; }
+  .login h1{ font-size:26px; font-weight:800; text-transform:uppercase; letter-spacing:1px; }
+  .login h1 b{ color:var(--green); }
+  .login p{ color:rgba(255,255,255,.55); font-size:14px; max-width:280px; }
+  .login input{ width:100%; max-width:320px; padding:15px 16px; font-size:16px; font-family:inherit; text-align:center; letter-spacing:2px;
+    background:rgba(0,0,0,.4); border:1px solid rgba(255,255,255,.25); color:#fff; border-radius:10px; outline:none; }
+  .login input:focus{ border-color:var(--green); }
+  .login button{ width:100%; max-width:320px; padding:15px; font-size:16px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+    background:var(--green); color:#04210a; border:none; border-radius:10px; font-family:inherit; cursor:pointer; }
+  .login button:disabled{ opacity:.5; }
+  .login .err{ color:var(--red); font-size:14px; min-height:18px; }
+
+  /* toolbar */
+  .toolbar{ display:flex; align-items:center; gap:10px; padding:14px 2px 6px; }
+  .toolbar .count{ font-size:13px; color:rgba(255,255,255,.5); letter-spacing:1px; text-transform:uppercase; }
+  .toolbar .refresh{ margin-left:auto; width:40px; height:40px; border-radius:50%; border:1px solid rgba(255,255,255,.18);
+    background:transparent; color:rgba(255,255,255,.6); font-size:18px; cursor:pointer; transition:transform .3s; }
+  .toolbar .refresh:active{ transform:rotate(180deg); color:var(--green); }
+
+  /* tarjeta de noticia */
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:12px; }
+  .card.sent{ opacity:.5; }
+  .card .src{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .card .src b{ color:var(--green); font-size:12px; letter-spacing:1.5px; text-transform:uppercase; font-weight:700; }
+  .card .src .time{ font-size:12px; color:rgba(255,255,255,.4); }
+  .card h3{ font-size:18px; line-height:1.25; font-weight:700; margin-bottom:8px; }
+  .card .resumen{ font-size:14px; line-height:1.5; color:rgba(255,255,255,.72); margin-bottom:14px; }
+  .card .acts{ display:flex; gap:10px; align-items:center; }
+  .card a.link{ font-size:13px; color:rgba(255,255,255,.5); text-decoration:none; border-bottom:1px solid rgba(255,255,255,.2); }
+  .card .send{ margin-left:auto; padding:11px 18px; font-size:14px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+    background:var(--green); color:#04210a; border:none; border-radius:9px; font-family:inherit; cursor:pointer; }
+  .card .send:disabled{ opacity:.5; }
+  .card .send.ok{ background:transparent; border:1px solid var(--green); color:var(--green); }
+
+  .empty{ text-align:center; color:rgba(255,255,255,.4); padding:50px 20px; font-size:15px; }
+  .loading{ text-align:center; color:rgba(255,255,255,.4); padding:40px; letter-spacing:2px; text-transform:uppercase; font-size:14px; }
+
+  /* modal de confirmación */
+  .modal-bg{ position:fixed; inset:0; background:rgba(0,0,0,.75); display:none; align-items:center; justify-content:center; padding:24px; z-index:100; }
+  .modal-bg.show{ display:flex; }
+  .modal{ background:var(--panel); border:1px solid var(--green); border-radius:16px; padding:22px; max-width:400px; width:100%; }
+  .modal h4{ font-size:15px; letter-spacing:1px; text-transform:uppercase; color:var(--green); margin-bottom:12px; }
+  .modal .prev-title{ font-size:17px; font-weight:700; line-height:1.3; margin-bottom:8px; }
+  .modal .prev-res{ font-size:13px; color:rgba(255,255,255,.65); line-height:1.5; margin-bottom:18px; max-height:120px; overflow:auto; }
+  .modal .mbtns{ display:flex; gap:10px; }
+  .modal button{ flex:1; padding:14px; font-size:15px; font-weight:700; letter-spacing:1px; text-transform:uppercase; border-radius:10px; font-family:inherit; cursor:pointer; border:none; }
+  .modal .cancel{ background:transparent; border:1px solid rgba(255,255,255,.25); color:rgba(255,255,255,.7); }
+  .modal .confirm{ background:var(--green); color:#04210a; }
+  .modal .confirm:disabled{ opacity:.5; }
+
+  /* toast */
+  .toast{ position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(80px); z-index:200;
+    background:#0f1714; border:1px solid var(--green); color:var(--g-hi); padding:13px 22px; border-radius:12px; font-size:14px; font-weight:600;
+    opacity:0; transition:all .3s; box-shadow:0 8px 30px rgba(0,0,0,.5); max-width:90vw; text-align:center; }
+  .toast.show{ transform:translateX(-50%) translateY(0); opacity:1; }
+  .toast.err{ border-color:var(--red); color:#ffb4b4; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- LOGIN -->
+    <div class="login" id="login">
+      <h1>PULSO <b>·</b> WAR ROOM</h1>
+      <p>Ingresá la clave para curar y enviar noticias al grupo.</p>
+      <input id="clave" type="password" inputmode="text" placeholder="Clave" autocomplete="current-password" />
+      <button id="login-btn" onclick="login()">Entrar</button>
+      <div class="err" id="login-err"></div>
+    </div>
+
+    <!-- PANEL (oculto hasta loguear) -->
+    <div id="panel" style="display:none">
+      <header>
+        <div class="brand">PULSO <b>WAR ROOM</b><small>Enviar a Noticias</small></div>
+        <button class="hbtn" onclick="salir()">Salir</button>
+      </header>
+      <div class="toolbar">
+        <span class="count" id="count">—</span>
+        <button class="refresh" onclick="cargarNoticias()" aria-label="Actualizar">↻</button>
+      </div>
+      <div id="lista"><div class="loading">Cargando…</div></div>
+    </div>
+  </div>
+
+  <!-- MODAL CONFIRMACIÓN -->
+  <div class="modal-bg" id="modal">
+    <div class="modal">
+      <h4>¿Enviar al topic Noticias?</h4>
+      <div class="prev-title" id="m-title"></div>
+      <div class="prev-res" id="m-res"></div>
+      <div class="mbtns">
+        <button class="cancel" onclick="cerrarModal()">Cancelar</button>
+        <button class="confirm" id="m-confirm" onclick="confirmarEnvio()">Enviar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  var PASE = null;
+  var items = [];
+  var enviados = {};        // id -> true
+  var pendiente = null;     // noticia elegida para enviar
+
+  function api(path){ return CONFIG.API_BASE.replace(/\/$/,'') + path; }
+
+  function toast(msg, err){
+    var t=document.getElementById('toast');
+    t.textContent=msg; t.className='toast show' + (err?' err':'');
+    setTimeout(function(){ t.className='toast' + (err?' err':''); }, 2600);
+  }
+
+  /* ── LOGIN ── */
+  function login(){
+    var clave=document.getElementById('clave').value.trim();
+    var err=document.getElementById('login-err'); var btn=document.getElementById('login-btn');
+    err.textContent='';
+    if(!clave){ err.textContent='Ingresá la clave.'; return; }
+    btn.disabled=true; btn.textContent='Entrando…';
+    fetch(api('/login'), { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({clave:clave}) })
+      .then(function(r){ return r.json().then(function(d){ return {status:r.status, d:d}; }); })
+      .then(function(res){
+        btn.disabled=false; btn.textContent='Entrar';
+        if(res.d && res.d.ok && res.d.pase){
+          PASE=res.d.pase;
+          try{ sessionStorage.setItem('wr_pase', PASE); }catch(e){}
+          mostrarPanel();
+        } else {
+          err.textContent = (res.d && res.d.error) || 'Clave incorrecta.';
+        }
+      })
+      .catch(function(){ btn.disabled=false; btn.textContent='Entrar'; err.textContent='No se pudo conectar al servidor.'; });
+  }
+
+  function salir(){
+    PASE=null; try{ sessionStorage.removeItem('wr_pase'); }catch(e){}
+    document.getElementById('panel').style.display='none';
+    document.getElementById('login').style.display='';
+    document.getElementById('clave').value='';
+  }
+
+  function mostrarPanel(){
+    document.getElementById('login').style.display='none';
+    document.getElementById('panel').style.display='';
+    cargarNoticias();
+  }
+
+  /* ── NOTICIAS ── */
+  function fmtTime(ts){
+    if(!ts) return '';
+    var diff=Math.floor((Date.now()-ts)/60000);
+    if(diff<1) return 'ahora'; if(diff<60) return diff+'m';
+    var h=Math.floor(diff/60); if(h<24) return h+'h'; return Math.floor(h/24)+'d';
+  }
+  function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function cargarNoticias(){
+    document.getElementById('lista').innerHTML='<div class="loading">Cargando…</div>';
+    fetch(api('/news-data'), { cache:'no-store' })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        items = (data && data.items) ? data.items : [];
+        render();
+      })
+      .catch(function(){ document.getElementById('lista').innerHTML='<div class="empty">No se pudieron cargar las noticias.</div>'; });
+  }
+
+  function render(){
+    var cont=document.getElementById('lista');
+    document.getElementById('count').textContent = items.length + ' noticias';
+    if(!items.length){ cont.innerHTML='<div class="empty">No hay noticias.</div>'; return; }
+    var html='';
+    items.forEach(function(it){
+      var titulo = it.titulo_es || it.title || '';
+      var resumen = it.resumen_es || it.summary || '';
+      var yaEnviado = !!enviados[it.id];
+      html += '<div class="card'+(yaEnviado?' sent':'')+'" id="card-'+esc(it.id)+'">'
+        + '<div class="src"><b>'+esc(it.source||'')+'</b><span class="time">'+fmtTime(it.ts)+'</span></div>'
+        + '<h3>'+esc(titulo)+'</h3>'
+        + (resumen?'<div class="resumen">'+esc(resumen)+'</div>':'')
+        + '<div class="acts">'
+        + (it.url?'<a class="link" href="'+esc(it.url)+'" target="_blank" rel="noopener">Ver original</a>':'')
+        + '<button class="send'+(yaEnviado?' ok':'')+'" '+(yaEnviado?'disabled':'')+' onclick="pedirConfirmacion(\''+esc(it.id)+'\')">'+(yaEnviado?'✓ Enviado':'Enviar')+'</button>'
+        + '</div></div>';
+    });
+    cont.innerHTML=html;
+  }
+
+  /* ── CONFIRMACIÓN + ENVÍO ── */
+  function pedirConfirmacion(id){
+    var it=null; for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
+    if(!it) return;
+    pendiente=it;
+    document.getElementById('m-title').textContent = it.titulo_es || it.title || '';
+    document.getElementById('m-res').textContent = it.resumen_es || it.summary || '';
+    document.getElementById('modal').classList.add('show');
+  }
+  function cerrarModal(){ document.getElementById('modal').classList.remove('show'); pendiente=null; }
+
+  function confirmarEnvio(){
+    if(!pendiente) return;
+    var it=pendiente;
+    var btn=document.getElementById('m-confirm');
+    btn.disabled=true; btn.textContent='Enviando…';
+    fetch(api('/send'), {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'x-panel-pase': PASE },
+      body:JSON.stringify({ ids:[it.id] })
+    })
+    .then(function(r){ return r.json().then(function(d){ return {status:r.status, d:d}; }); })
+    .then(function(res){
+      btn.disabled=false; btn.textContent='Enviar';
+      if(res.status===401){ cerrarModal(); toast('Sesión vencida, volvé a entrar.', true); setTimeout(salir, 1200); return; }
+      if(res.d && res.d.ok){
+        enviados[it.id]=true;
+        cerrarModal();
+        render();
+        toast('✓ Enviado a War Room');
+      } else {
+        toast((res.d && res.d.error) || 'No se pudo enviar.', true);
+      }
+    })
+    .catch(function(){ btn.disabled=false; btn.textContent='Enviar'; toast('Error de conexión.', true); });
+  }
+
+  /* ── init: si hay pase guardado en la sesión, reusar ── */
+  (function init(){
+    var p=null; try{ p=sessionStorage.getItem('wr_pase'); }catch(e){}
+    if(p){ PASE=p; mostrarPanel(); }
+    document.getElementById('clave').addEventListener('keydown', function(e){ if(e.key==='Enter') login(); });
+  })();
+</script>
+</body>
+</html>
